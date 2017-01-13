@@ -63,7 +63,7 @@ def addcol(msname, colname=None, shape=None,
     tab.close()
 
 
-def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, suntract=False):
+def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, subtract=False):
     """ Add col1 to col2, or sum columns in 'cols' list.
         If subtract, subtract col2 from col1
     """
@@ -175,23 +175,20 @@ def prep (msname, verify=True):
     # check if addbitflagcol exists
     if spawn.find_executable("addbitflagcol"):
         print("Adding bitflag column to %s"%msname)
-        subprocess.Popen("addbitflagcol %s"%msname,
+        subprocess.check_call(['addbitflagcol', msname],
                          stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr, 
-                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout,
-                         shell=True)
+                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)
     
     if spawn.find_executable("flag-ms.py"):
         print("Copying FLAG to bitflag 'legacy'")
-        subprocess.Popen("flag-ms.py %s -Y +L -f legacy -c"%msname,
+        subprocess.check_call(['flag-ms.py', '-Y', '+L', '-f', 'legacy', '-c', msname],
                          stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr, 
-                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout,
-                         shell=True)
+                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)
 
         print("Flagging INFs/NaNs in data")
-        subprocess.Popen("flag-ms.py %s --nan -f legacy --data-column DATA -x"%msname,
+        subprocess.Popen(['flag-ms.py', '--nan', '-f', 'legacy', '--data-column', 'DATA', '-x', msname],
                          stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr, 
-                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout,
-                         shell=True)
+                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)
 
 
 def addnoise(msname, column='MODEL_DATA',

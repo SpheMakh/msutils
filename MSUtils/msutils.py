@@ -161,13 +161,13 @@ def verify_antpos (msname, fix=False, hemisphere=None):
         print("%s/ANTENNA: all antenna positions appear to have correct Y sign"%msname)
 
 
-def prep (msname, verify=True):
+def prep (msname, verify=False):
     """Prepares MS for use with MeqTrees: adds imaging columns, adds BITFLAG columns, copies current flags
        to 'legacy' flagset
     """
 
     if verify:
-        verify_antpos(msname, fix=True);
+        verify_antpos(msname, fix=verify);
 
     print("Adding imaging columns")
     pyrap.tables.addImagingColumns(msname)

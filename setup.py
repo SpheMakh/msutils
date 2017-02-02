@@ -73,7 +73,7 @@ def src_pkg_dirs(pkg_name):
     return pkg_dirs
 
 setup(name=pkg,
-      version="0.0.2", #get_version(),
+      version="0.0.3", #get_version(),
       description='Tools for playing with Measurement sets.',
       long_description=readme(),
       url='',

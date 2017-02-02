@@ -79,6 +79,7 @@ def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, subtract=False
         else:
             data = tab.getcol(col1) + tab.getcol(col2)
 
+    nrows = tab.nrows()
     rowchunk = nrows//10 if nrows > 1000 else nrows
     for row0 in range(0, nrows, rowchunk):
         nr = min(rowchunk, nrows-row0)

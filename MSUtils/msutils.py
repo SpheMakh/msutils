@@ -10,8 +10,54 @@ from distutils import spawn
 import sys
 import subprocess
 import math
+import json
+import codecs
 
 dm = pyrap.measures.measures()
+
+
+def summary(msname, outfile, display=True):
+
+    tab = pyrap.tables.table(msname)
+    field_tab = pyrap.tables.table(msname+'/FIELD')
+    spw_tab = pyrap.tables.table(msname+'/SPECTRAL_WINDOW')
+    ant_tab = pyrap.tables.table(msname+'/ANTENNA')
+
+    info = {
+        'FIELD' :   {},
+        'SPW'   :   {},
+        'ANT'   :   {},
+        'MAXBL' :   {},
+    }
+
+    tabs = {
+        'FIELD' :   pyrap.tables.table(msname+'/FIELD'),
+        'SPW'   :   pyrap.tables.table(msname+'/SPECTRAL_WINDOW'),
+        'ANT'   :   pyrap.tables.table(msname+'/ANTENNA'),
+    }
+
+    for key, _tab in tabs.iteritems():
+        for name in _tab.colnames():
+            try:
+                info[key][name] = _tab.getcol(name).tolist()
+            except AttributeError:
+                info[key][name] = _tab.getcol(name)
+        _tab.close()
+
+    # Get maximum baseline
+    uv = tab.getcol("UVW")[:,:2]
+    mb = numpy.sqrt((uv**2).sum(1)).max()
+    info['MAXBL'] = mb
+    tab.close()
+
+    with codecs.open(outfile, 'w', 'utf8') as stdw:
+        stdw.write(json.dumps(info, ensure_ascii=False))
+
+    if display:
+        print info
+
+    return info
+
 
 
 def addcol(msname, colname=None, shape=None,

@@ -15,29 +15,46 @@ import codecs
 
 dm = pyrap.measures.measures()
 
-
 def summary(msname, outfile, display=True):
 
     tab = pyrap.tables.table(msname)
-    field_tab = pyrap.tables.table(msname+'/FIELD')
-    spw_tab = pyrap.tables.table(msname+'/SPECTRAL_WINDOW')
-    ant_tab = pyrap.tables.table(msname+'/ANTENNA')
 
     info = {
         'FIELD' :   {},
         'SPW'   :   {},
         'ANT'   :   {},
         'MAXBL' :   {},
+        'SCAN'  :   {},
     }
 
     tabs = {
-        'FIELD' :   pyrap.tables.table(msname+'/FIELD'),
-        'SPW'   :   pyrap.tables.table(msname+'/SPECTRAL_WINDOW'),
-        'ANT'   :   pyrap.tables.table(msname+'/ANTENNA'),
+        'FIELD'     :   pyrap.tables.table(msname+'/FIELD'),
+        'SPW'       :   pyrap.tables.table(msname+'/SPECTRAL_WINDOW'),
+        'ANT'       :   pyrap.tables.table(msname+'/ANTENNA'),
     }
 
+    field_ids = tabs['FIELD'].getcol('SOURCE_ID')
+    nant = tabs['ANT'].nrows()
+    nbl = nant*(nant-1)
+
+    for fid in field_ids:
+        ftab = tab.query('FIELD_ID=={0:d}'.format(fid))
+        scans = {}
+        for scan in set(ftab.getcol('SCAN_NUMBER')):
+            stab = ftab.query('SCAN_NUMBER=={0:d}'.format(scan))
+            length = numpy.sum(stab.getcol('EXPOSURE'))/nbl
+            stab.close()
+            scans[str(scan)] = length
+
+        info['SCAN'][str(fid)] = scans
+        ftab.close()
+        
     for key, _tab in tabs.iteritems():
-        for name in _tab.colnames():
+        if key == 'SPW':
+            colnames = 'MEAS_FREQ_REF REF_FREQUENCY TOTAL_BANDWIDTH NAME NUM_CHAN IF_CONV_CHAIN NET_SIDEBAND FREQ_GROUP_NAME'.split()
+        else:
+            colnames = _tab.colnames()
+        for name in colnames:
             try:
                 info[key][name] = _tab.getcol(name).tolist()
             except AttributeError:
@@ -57,7 +74,6 @@ def summary(msname, outfile, display=True):
         print info
 
     return info
-
 
 
 def addcol(msname, colname=None, shape=None,

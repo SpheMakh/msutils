@@ -33,6 +33,10 @@ def summary(msname, outfile, display=True):
         'ANT'       :   pyrap.tables.table(msname+'/ANTENNA'),
     }
 
+    state_tab = pyrap.tables.table(msname+'/STATE')
+    info['FIELD']['INTENTS'] = state_tab.getcol('OBS_MODE')
+    state_tab.close()
+
     field_ids = tabs['FIELD'].getcol('SOURCE_ID')
     nant = tabs['ANT'].nrows()
     nbl = nant*(nant-1)

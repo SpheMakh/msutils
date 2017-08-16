@@ -41,8 +41,11 @@ def summary(msname, outfile, display=True):
     nant = tabs['ANT'].nrows()
     nbl = nant*(nant-1)
 
+    info['FIELD']['STATE_ID'] = [None]*len(field_ids)
     for fid in field_ids:
         ftab = tab.query('FIELD_ID=={0:d}'.format(fid))
+        state_id = ftab.getcol('STATE_ID')[0]
+        info['FIELD']['STATE_ID'][fid] = int(state_id)
         scans = {}
         for scan in set(ftab.getcol('SCAN_NUMBER')):
             stab = ftab.query('SCAN_NUMBER=={0:d}'.format(scan))
@@ -71,11 +74,11 @@ def summary(msname, outfile, display=True):
     info['MAXBL'] = mb
     tab.close()
 
-    with codecs.open(outfile, 'w', 'utf8') as stdw:
-        stdw.write(json.dumps(info, ensure_ascii=False))
-
     if display:
         print info
+
+    with codecs.open(outfile, 'w', 'utf8') as stdw:
+        stdw.write(json.dumps(info, ensure_ascii=False))
 
     return info
 

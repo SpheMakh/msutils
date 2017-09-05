@@ -20,11 +20,12 @@ def summary(msname, outfile, display=True):
     tab = pyrap.tables.table(msname)
 
     info = {
-        'FIELD' :   {},
-        'SPW'   :   {},
-        'ANT'   :   {},
-        'MAXBL' :   {},
-        'SCAN'  :   {},
+        'FIELD'     :   {},
+        'SPW'       :   {},
+        'ANT'       :   {},
+        'MAXBL'     :   {},
+        'SCAN'      :   {},
+        "EXPOSURE"  :   {},
     }
 
     tabs = {
@@ -40,6 +41,8 @@ def summary(msname, outfile, display=True):
     field_ids = tabs['FIELD'].getcol('SOURCE_ID')
     nant = tabs['ANT'].nrows()
     nbl = nant*(nant-1)
+
+    info['EXPOSURE'] = tab.getcol("EXPOSURE", 0, 1)[0]
 
     info['FIELD']['STATE_ID'] = [None]*len(field_ids)
     for fid in field_ids:

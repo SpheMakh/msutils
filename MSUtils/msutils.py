@@ -40,23 +40,26 @@ def summary(msname, outfile, display=True):
 
     field_ids = tabs['FIELD'].getcol('SOURCE_ID')
     nant = tabs['ANT'].nrows()
-    nbl = nant*(nant-1)
 
     info['EXPOSURE'] = tab.getcol("EXPOSURE", 0, 1)[0]
 
     info['FIELD']['STATE_ID'] = [None]*len(field_ids)
+    info['FIELD']['PERIOD'] = [None]*len(field_ids)
     for fid in field_ids:
         ftab = tab.query('FIELD_ID=={0:d}'.format(fid))
         state_id = ftab.getcol('STATE_ID')[0]
         info['FIELD']['STATE_ID'][fid] = int(state_id)
         scans = {}
+        total_length = 0
         for scan in set(ftab.getcol('SCAN_NUMBER')):
             stab = ftab.query('SCAN_NUMBER=={0:d}'.format(scan))
-            length = numpy.sum(stab.getcol('EXPOSURE'))/nbl
+            length = (stab.getcol('TIME').max() - stab.getcol('TIME').min())
             stab.close()
             scans[str(scan)] = length
+            total_length += length
 
         info['SCAN'][str(fid)] = scans
+        info['FIELD']['PERIOD'][fid] = total_length
         ftab.close()
         
     for key, _tab in tabs.iteritems():
@@ -234,7 +237,7 @@ def verify_antpos (msname, fix=False, hemisphere=None):
         print("%s/ANTENNA: all antenna positions appear to have correct Y sign"%msname)
 
 
-def prep (msname, verify=False):
+def prep(msname, verify=False):
     """Prepares MS for use with MeqTrees: adds imaging columns, adds BITFLAG columns, copies current flags
        to 'legacy' flagset
     """

@@ -15,17 +15,19 @@ import codecs
 
 dm = pyrap.measures.measures()
 
-def summary(msname, outfile, display=True):
+def summary(msname, outfile=None, display=True):
 
     tab = pyrap.tables.table(msname)
 
     info = {
-        'FIELD'     :   {},
-        'SPW'       :   {},
-        'ANT'       :   {},
-        'MAXBL'     :   {},
-        'SCAN'      :   {},
+        "FIELD"     :   {},
+        "SPW"       :   {},
+        "ANT"       :   {},
+        "MAXBL"     :   {},
+        "SCAN"      :   {},
         "EXPOSURE"  :   {},
+        "NROW"      :   tab.nrows(),
+        "NCOR"      :   tab.getcell('DATA', 0).shape[-1],
     }
 
     tabs = {
@@ -41,7 +43,7 @@ def summary(msname, outfile, display=True):
     field_ids = tabs['FIELD'].getcol('SOURCE_ID')
     nant = tabs['ANT'].nrows()
 
-    info['EXPOSURE'] = tab.getcol("EXPOSURE", 0, 1)[0]
+    info['EXPOSURE'] = tab.getcell("EXPOSURE",0)
 
     info['FIELD']['STATE_ID'] = [None]*len(field_ids)
     info['FIELD']['PERIOD'] = [None]*len(field_ids)
@@ -82,15 +84,19 @@ def summary(msname, outfile, display=True):
 
     if display:
         print info
-
-    with codecs.open(outfile, 'w', 'utf8') as stdw:
-        stdw.write(json.dumps(info, ensure_ascii=False))
+    
+    if outfile:
+        with codecs.open(outfile, 'w', 'utf8') as stdw:
+            stdw.write(json.dumps(info, ensure_ascii=False))
 
     return info
 
 
 def addcol(msname, colname=None, shape=None,
-           data_desc_type='array', valuetype=None, init_with=0, **kw):
+           data_desc_type='array', 
+           valuetype=None, 
+           init_with=None,
+           **kw):
     """ Add column to MS 
         msanme : MS to add colmn to
         colname : column name
@@ -101,39 +107,37 @@ def addcol(msname, colname=None, shape=None,
     """
     tab = table(msname,readonly=False)
 
-    try: 
+    if colname in tab.colnames():
         tab.getcol(colname)
         print('Column already exists')
+        return
 
-    except RuntimeError:
-        print('Attempting to add %s column to %s'%(colname,msname))
+    print('Attempting to add %s column to %s'%(colname,msname))
 
-        valuetype = valuetype or 'complex'
+    valuetype = valuetype or 'complex'
 
-        if shape is None: 
-            dshape = list(tab.getcol('DATA').shape)
-            shape = dshape[1:]
+    if shape is None: 
+        dshape = list(tab.getcol('DATA').shape)
+        shape = dshape[1:]
 
-        if data_desc_type=='array':
-            coldmi = tab.getdminfo('DATA') # God forbid this (or the TIME) column doesn't exist
-            coldmi['NAME'] = colname.lower()
-            tab.addcols(maketabdesc(makearrcoldesc(colname,init_with,shape=shape,valuetype=valuetype)),coldmi)
+    if data_desc_type=='array':
+        tab.addcols(maketabdesc(makearrcoldesc(colname,init_with,shape=shape,valuetype=valuetype)))
 
-        elif data_desc_type=='scalar':
-            coldmi = tab.getdminfo('TIME')
-            coldmi['NAME'] = colname.lower()
-            tab.addcols(maketabdesc(makescacoldesc(colname,init_with,valuetype=valuetype)),coldmi)
+    elif data_desc_type=='scalar':
+        tab.addcols(maketabdesc(makescacoldesc(colname,init_with,valuetype=valuetype)))
 
-        print('Column added successfuly.')
+    print('Column added successfuly.')
 
-        if init_with:
-            nrows = dshape[0]
+    if init_with is not None:
+        print('Initialising {0:s} column with {1}'.format(colname, init_with))
+        nrows = dshape[0]
 
-            rowchunk = nrows//10 if nrows > 1000 else nrows
-            for row0 in range(0,nrows,rowchunk):
-                nr = min(rowchunk,nrows-row0)
-                dshape[0] = nr
-                tab.putcol(colname,numpy.ones(dshape,dtype=valuetype)*init_with,row0,nr)
+        rowchunk = nrows//10 if nrows > 1000 else nrows
+        for row0 in range(0,nrows,rowchunk):
+            nr = min(rowchunk,nrows-row0)
+            dshape[0] = nr
+            print("Wrtiting to column  %s (rows %d to %d)"%(column, row0, row0+nr-1))
+            tab.putcol(colname,numpy.ones(dshape,dtype=valuetype)*init_with,row0,nr)
 
     tab.close()
 
@@ -155,9 +159,10 @@ def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, subtract=False
             data = tab.getcol(col1) + tab.getcol(col2)
 
     nrows = tab.nrows()
-    rowchunk = nrows//10 if nrows > 1000 else nrows
+    rowchunk = nrows//10 if nrows > 10000 else nrows
     for row0 in range(0, nrows, rowchunk):
         nr = min(rowchunk, nrows-row0)
+        print("Wrtiting to column  %s (rows %d to %d)"%(column, row0, row0+nr-1))
         tab.putcol(outcol, data[row0:row0+nr], row0, nr)
 
     tab.close()

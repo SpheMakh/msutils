@@ -15,17 +15,19 @@ import codecs
 
 dm = pyrap.measures.measures()
 
-def summary(msname, outfile, display=True):
+def summary(msname, outfile=None, display=True):
 
     tab = pyrap.tables.table(msname)
 
     info = {
-        'FIELD'     :   {},
-        'SPW'       :   {},
-        'ANT'       :   {},
-        'MAXBL'     :   {},
-        'SCAN'      :   {},
+        "FIELD"     :   {},
+        "SPW"       :   {},
+        "ANT"       :   {},
+        "MAXBL"     :   {},
+        "SCAN"      :   {},
         "EXPOSURE"  :   {},
+        "NROW"      :   tab.nrows(),
+        "NCOR"      :   tab.getcell('DATA', 0).shape[-1],
     }
 
     tabs = {
@@ -41,7 +43,7 @@ def summary(msname, outfile, display=True):
     field_ids = tabs['FIELD'].getcol('SOURCE_ID')
     nant = tabs['ANT'].nrows()
 
-    info['EXPOSURE'] = tab.getcol("EXPOSURE", 0, 1)[0]
+    info['EXPOSURE'] = tab.getcell("EXPOSURE", 0)
 
     info['FIELD']['STATE_ID'] = [None]*len(field_ids)
     info['FIELD']['PERIOD'] = [None]*len(field_ids)
@@ -82,15 +84,23 @@ def summary(msname, outfile, display=True):
 
     if display:
         print info
-
-    with codecs.open(outfile, 'w', 'utf8') as stdw:
-        stdw.write(json.dumps(info, ensure_ascii=False))
+    
+    if outfile:
+        with codecs.open(outfile, 'w', 'utf8') as stdw:
+            stdw.write(json.dumps(info, ensure_ascii=False))
 
     return info
 
 
 def addcol(msname, colname=None, shape=None,
-           data_desc_type='array', valuetype=None, init_with=0, **kw):
+           data_desc_type='array', 
+           valuetype=None, 
+           init_with=None,
+           coldesc=None,
+           coldmi=None,
+           clone='DATA',
+           rowchunk=None,
+           **kw):
     """ Add column to MS 
         msanme : MS to add colmn to
         colname : column name
@@ -101,41 +111,66 @@ def addcol(msname, colname=None, shape=None,
     """
     tab = table(msname,readonly=False)
 
-    try: 
-        tab.getcol(colname)
+    if colname in tab.colnames():
         print('Column already exists')
+        return 'exists'
 
-    except RuntimeError:
-        print('Attempting to add %s column to %s'%(colname,msname))
+    print('Attempting to add %s column to %s'%(colname,msname))
 
-        valuetype = valuetype or 'complex'
+    valuetype = valuetype or 'complex'
 
-        if shape is None: 
-            dshape = list(tab.getcol('DATA').shape)
-            shape = dshape[1:]
+    if coldesc:
+        data_desc = coldesc
+        shape = coldesc['shape']
+    elif shape:
+        data_desc = maketabdesc(makearrcoldesc(colname, 
+                    init_with,
+                    shape=shape,
+                    valuetype=valuetype))
+    elif valuetype == 'scalar':
+        data_desc = maketabdesc(makearrcoldesc(colname, 
+                    init_with,
+                    valuetype=valuetype))
+    elif clone:
+        element = tab.getcell(clone, 0)
+        try:
+            shape = element.shape
+            data_desc = maketabdesc(makearrcoldesc(colname, 
+                        element.flatten()[0],
+                        shape=shape,
+                        valuetype=valuetype))
+        except AttributeError:
+            shape = []
+            data_desc = maketabdesc(makearrcoldesc(colname, 
+                        element,
+                        valuetype=valuetype))
+    
+    colinfo = [data_desc, coldmi] if coldmi else [data_desc]
+    tab.addcols(*colinfo)
 
-        if data_desc_type=='array':
-            coldmi = tab.getdminfo('DATA') # God forbid this (or the TIME) column doesn't exist
-            coldmi['NAME'] = colname.lower()
-            tab.addcols(maketabdesc(makearrcoldesc(colname,init_with,shape=shape,valuetype=valuetype)),coldmi)
+    print('Column added successfuly.')
 
-        elif data_desc_type=='scalar':
-            coldmi = tab.getdminfo('TIME')
-            coldmi['NAME'] = colname.lower()
-            tab.addcols(maketabdesc(makescacoldesc(colname,init_with,valuetype=valuetype)),coldmi)
+    if init_with is None:
+        tab.close()
+        return 'added'
+    else:
+        spwids = set(tab.getcol('DATA_DESC_ID'))
+        for spw in spwids:
+            print('Initialising {0:s} column with {1}. DDID is {2:d}'.format(colname, init_with, spw))
+            tab_spw = tab.query('DATA_DESC_ID=={0:d}'.format(spw))
+            nrows = tab_spw.nrows()
 
-        print('Column added successfuly.')
-
-        if init_with:
-            nrows = dshape[0]
-
-            rowchunk = nrows//10 if nrows > 1000 else nrows
+            rowchunk = rowchunk or nrows/10
+            dshape = [0] + [a for a in shape]
             for row0 in range(0,nrows,rowchunk):
                 nr = min(rowchunk,nrows-row0)
                 dshape[0] = nr
-                tab.putcol(colname,numpy.ones(dshape,dtype=valuetype)*init_with,row0,nr)
-
+                print("Wrtiting to column  %s (rows %d to %d)"%(colname, row0, row0+nr-1))
+                tab_spw.putcol(colname,numpy.ones(dshape,dtype=type(init_with))*init_with,row0,nr)
+            tab_spw.close()
     tab.close()
+
+    return 'added'
 
 
 def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, subtract=False):
@@ -144,21 +179,28 @@ def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, subtract=False
     """
 
     tab = table(msname, readonly=False)
-    if cols:
-        data = 0
-        for col in cols:
-            data += tab.getcol(col)
-    else:
-        if subtract:
-            data = tab.getcol(col1) - tab.getcol(col2)
-        else:
-            data = tab.getcol(col1) + tab.getcol(col2)
+    if outcol not in tab.colnames():
+        print('outcol {0:s} does not exist, will add it first.'.format(outcol))
+        addcol(msname, outcol, clone=col1 or cols[0])
 
-    nrows = tab.nrows()
-    rowchunk = nrows//10 if nrows > 1000 else nrows
-    for row0 in range(0, nrows, rowchunk):
-        nr = min(rowchunk, nrows-row0)
-        tab.putcol(outcol, data[row0:row0+nr], row0, nr)
+    spws = set(tab.getcol('DATA_DESC_ID'))
+    for spw in spws:
+        tab_spw = tab.query('DATA_DESC_ID=={0:d}'.format(spw))
+        nrows = tab_spw.nrows()
+        rowchunk = nrows//10 if nrows > 10000 else nrows
+        for row0 in range(0, nrows, rowchunk):
+            nr = min(rowchunk, nrows-row0)
+            print("Wrtiting to column  %s (rows %d to %d)"%(outcol, row0, row0+nr-1))
+            if subtract:
+                data = tab_spw.getcol(col1, row0, nr) - tab_spw.getcol(col2, row0, nr)
+            else:
+                cols = cols or [col1, col2]
+                data = 0
+                for col in cols:
+                    data += tab.getcol(col, row0, nr)
+
+            tab_spw.putcol(outcol, data, row0, nr)
+        tab_spw.close()
 
     tab.close()
 
@@ -169,16 +211,20 @@ def copycol(msname, fromcol, tocol):
     """
 
     tab = table(msname, readonly=False)
-    data = tab.getcol(fromcol)
     if tocol not in tab.colnames():
-        addcol(msname, tocol)
+        addcol(msname, tocol, clone=fromcol)
 
-    nrows = tab.nrows()
-    rowchunk = nrows//10 if nrows > 5000 else nrows
-    for row0 in range(0, nrows, rowchunk):
-        nr = min(rowchunk, nrows-row0)
-        tab.putcol(tocol, data[row0:row0+nr], row0, nr)
+    spws = set(tab.getcol('DATA_DESC_ID'))
+    for spw in spws:
+        tab_spw = tab.query('DATA_DESC_ID=={0:d}'.format(spw))
+        nrows = tab_spw.nrows()
+        rowchunk = nrows//10 if nrows > 5000 else nrows
+        for row0 in range(0, nrows, rowchunk):
+            nr = min(rowchunk, nrows-row0)
+            data = tab_spw.getcol(fromcol, row0, nr)
+            tab_spw.putcol(tocol, data, row0, nr)
 
+        tab_spw.close()
     tab.close()
 
 
@@ -198,7 +244,8 @@ def compute_vis_noise(msname, sefd, spw_id=0):
     tab.close()
     spwtab.close()
 
-    print("%s freq %.2f MHz (lambda=%.2fm), bandwidth %.2g kHz, %.2fs integrations, %.2fh synthesis"%(msname, freq0*1e-6, wavelength, bw*1e-3, dt, dtf/3600))
+    print("%s freq %.2f MHz (lambda=%.2fm), bandwidth %.2g kHz, %.2fs integrations, %.2fh synthesis"%(msname, 
+        freq0*1e-6, wavelength, bw*1e-3, dt, dtf/3600))
     noise = sefd/math.sqrt(abs(2*bw*dt))
     print("SEFD of %.2f Jy gives per-visibility noise of %.2f mJy"%(sefd, noise*1000))
 
@@ -271,37 +318,45 @@ def addnoise(msname, column='MODEL_DATA',
              noise=0, sefd=551,
               rowchunk=None, 
               addToCol=None, 
-              spw_id=0):
+              spw_id=None):
     """ Add Gaussian noise to MS, given a stdandard deviation (noise). 
         This noise can be also be calculated given SEFD value
     """
 
-    spwtab = table(msname+"/SPECTRAL_WINDOW")
-    freq0 = spwtab.getcol("CHAN_FREQ")[spw_id,0]/1e6
-
     tab = table(msname, readonly=False)
-    dshape = list(tab.getcol('DATA').shape)
-    nrows = dshape[0]
 
-    noise = noise or compute_vis_noise(msname, sefd=sefd, spw_id=spw_id)
+    multi_chan_noise = False
+    if hasattr(noise, '__iter__'):
+        multi_chan_noise = True
+    elif hasattr(sefd, '__iter__'):
+        multi_chan_noise = True
+    else:
+        noise = noise or compute_vis_noise(msname, sefd=sefd, spw_id=spw_id or 0)
 
-    if addToCol: 
-        colData = tab.getcol(addToCol)
 
-    if rowchunk is None:
-        rowchunk = nrows/10 or nrows
+    spws = set(tab.getcol('DATA_DESC_ID'))
+    for spw in spws:
+        tab_spw = tab.query('DATA_DESC_ID=={0:d}'.format(spw))
+        nrows = tab_spw.nrows()
+        nchan,ncor = tab_spw.getcell('DATA', 0).shape
+
+        rowchunk = rowchunk or nrows/10
          
-    for row0 in range(0, nrows, rowchunk):
-        nr = min(rowchunk, nrows-row0)
-        dshape[0] = nr
-        data = noise*(numpy.random.randn(*dshape) + 1j*numpy.random.randn(*dshape))
+        for row0 in range(0, nrows, rowchunk):
+            nr = min(rowchunk, nrows-row0)
+            dshape[0] = nr
+            data = numpy.random.randn(nr, nchan, ncor) + 1j*numpy.random.randn(nr, nchan, ncor)
+            if multi_chan_noise:
+                noise = noise[numpy.newaxis,:,numpy.newaxis]
+            data *= noise
 
-        if addToCol: 
-            data+=colData[row0:(row0+nr)]
-            print(" %s + noise --> %s (rows %d to %d)"%(addToCol, column, row0, row0+nr-1))
-        else: 
-            print("Adding noise to column %s (rows %d to %d)"%(column, row0, row0+nr-1))
+            if addToCol: 
+                data += tab_spw.getcol(addToCol, row0, nr)
+                print("%s + noise --> %s (rows %d to %d)"%(addToCol, column, row0, row0+nr-1))
+            else: 
+                print("Adding noise to column %s (rows %d to %d)"%(column, row0, row0+nr-1))
 
-        tab.putcol(column, data, row0, nr) 
+            tab_spw.putcol(column, data, row0, nr)
+        tab_spw.close()
 
-    tab.close() 
+    tab.close()

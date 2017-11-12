@@ -9,6 +9,7 @@ from scipy.interpolate import interp1d
 from scipy import interpolate
 from MSUtils import msutils
 from pyrap.tables import table
+import matplotlib.cm as cm
 
 MEERKAT_SEFD = numpy.array([
  [ 856e6, 580.], 
@@ -48,20 +49,16 @@ class MSNoise(object):
         self.msinfo = msutils.summary(self.ms, display=False)
         self.nrows = self.msinfo['NROW']
         self.ncor = self.msinfo['NCOR']
-        self.spw = self.msinfo['SPW']
         freq0 = self.msinfo['SPW']['REF_FREQUENCY']
         bw = self.msinfo['SPW']['TOTAL_BANDWIDTH']
         nchan = self.msinfo['SPW']['NUM_CHAN']
-        freqs = []
+        self.spw = {}
+        self.nspw = len(bw)
         # Combine spectral windows
         for spwid,nc in enumerate(nchan):
             dfreq = bw[spwid]/nc
-            __freqs = freq0[spwid] + numpy.arange(nc)*dfreq
-            freqs += list(__freqs)
-
-        self.nchan = len(freqs)
-        self.freqs = numpy.array(freqs, dtype=numpy.float32)
-
+            freqs = freq0[spwid] + numpy.arange(nc)*dfreq
+            self.spw[spwid] = {'freqs': freqs, 'nchan': nchan[spwid]}
 
     def estimate_noise(self, corr=None, autocorr=False):
         """
@@ -114,46 +111,53 @@ class MSNoise(object):
 
         # lets work in MHz
         x = x*1e-6
-        freqs = self.freqs*1e-6
         if smooth=='polyn':
             fit_parms = numpy.polyfit(x, y, fit_order)
-            # Sample noise at MS Frequencies
-            noise = numpy.poly1d(fit_parms)(freqs)
+            fit_func = lambda freqs: numpy.poly1d(fit_parms)(freqs)
         elif smooth=='spline':
             fit_parms = interpolate.splrep(x, y, s=fit_order)
-            # Sample noise at MS Frequencies
-            noise = interpolate.splev(freqs, fit_parms, der=0)
+            fit_func = lambda freqs: interpolate.splev(freqs, fit_parms, der=0)
 
-        weights = 1.0/noise**2
+        # Get noise from the parameterised functions for each spectral window
+        fig, ax1 = pylab.subplots(figsize=(12,9))
+        ax2 = ax1.twinx()
+        color = iter(cm.rainbow(numpy.linspace(0,1,self.nspw)))
+        noise = []
+        weights = []
+        for spw in self.spw.itervalues():
+            freqs = spw['freqs']*1e-6
+            _noise = fit_func(freqs)
+            _weights = 1.0/_noise**2
 
-        if plot_stats:
-            # Plot noise/weights
-            fig, ax1 = pylab.subplots(figsize=(12,9))
-            ax2 = ax1.twinx()
-            l1, = ax1.plot(x/1e3, y, 'rx', label='Norm. noise ')
-            l2, = ax1.plot(self.freqs/1e9, noise, 'k-', label='Polynomial fit: n={0:d}'.format(fit_order))
-            ax1.set_xlabel('Freq [GHz]')
-            ax1.set_ylabel('Norm Noise')
-            l3, = ax2.plot(self.freqs/1e9, weights, 'g-', label='Weigths')
-            ax2.set_ylabel('Weight')
-            # Set limits based on non-smooth noise
-            ylims = 1/y**2
-            ax2.set_ylim(ylims.min()*0.9, ylims.max()*1.1)
-            pylab.legend([l1,l2,l3], 
-                         ['Norm. Noise', 'Polynomial fit: n={0:d}'.format(fit_order), 'Weights'], loc=1)
-
-            if isinstance(plot_stats, str):
-                pylab.savefig(plot_stats)
-            else:
-                pylab.savefig(self.ms + '-noise_weights.png')
-            pylab.clf()
+            if plot_stats:
+                # Use a differnet color to mark a new SPW
+                ax1.axvspan(freqs[0]/1e3, freqs[-1]/1e3, facecolor=color.next(), alpha=0.25)
+                # Plot noise/weights
+                l1, = ax1.plot(x/1e3, y, 'rx')
+                l2, = ax1.plot(freqs/1e3, _noise, 'k-')
+                ax1.set_xlabel('Freq [GHz]')
+                ax1.set_ylabel('Norm Noise')
+                l3, = ax2.plot(freqs/1e3, _weights, 'g-')
+                ax2.set_ylabel('Weight')
+            noise.append(_noise)
+            weights.append(_weights)
+        # Set limits based on non-smooth noise
+        ylims = 1/y**2
+        ax2.set_ylim(ylims.min()*0.9, ylims.max()*1.1)
+        pylab.legend([l1,l2,l3], 
+            ['Norm. Noise', 'Polynomial fit: n={0:d}'.format(fit_order), 'Weights'], loc=1)
+        if isinstance(plot_stats, str):
+            pylab.savefig(plot_stats)
+        else:
+            pylab.savefig(self.ms + '-noise_weights.png')
+        pylab.clf()
 
         return noise, weights
 
 
     def write_toms(self, data, 
                   columns=['WEIGHT', 'WEIGHT_SPECTRUM'], 
-                  stat='sum', rowchunk=None):
+                  stat='sum', rowchunk=None, multiply_old_weights=False):
         """
           Write noise or weights into an MS.
 
@@ -166,37 +170,42 @@ class MSNoise(object):
                 used the sum along Frequency axis of WEIGHT_SPECTRUM as weight for the WEIGHT column
         """
 
-        # Set shapes for columns to be created
-        shapes = ([self.ncor] , [self.nchan,self.ncor])
-
         # Initialise relavant columns. It will exit with zero status if the column alredy exists
-        for column,shape in zip(columns, shapes):
-            msutils.addcol(self.ms, colname=column, 
-                       shape=shape, 
+        for i, column in enumerate(columns):
+            msutils.addcol(self.ms, colname=column,
                        valuetype='float',
-                       data_desc='array',
+                       clone='WEIGHT' if i==0 else 'DATA',
+
                        )
 
-        tab = table(self.ms, readonly=False)
-        # Write data into MS in chunks
-        rowchunk = rowchunk or self.nrows/10
-        for row0 in range(0, self.nrows, rowchunk):
-            nr = min(rowchunk, self.nrows-row0)
-            # Shape for this chunk
-            dshape = (nr, self.nchan, self.ncor)
-            __data = numpy.ones(dshape, dtype=numpy.float32) * data[numpy.newaxis,:,numpy.newaxis]
-            # make a masked array to compute stats using unflagged data
-            flags = tab.getcol('FLAG', row0, nr)
-            mdata = ma.masked_array(__data, mask=flags)
-            
-            print("Populating {0:s} column (rows {1:d} to {2:d})".format(columns[1], row0, row0+nr-1))
-            tab.putcol(columns[1], __data, row0, nr)
-            
-            print("Populating {0:s} column (rows {1:d} to {2:d})".format(columns[0], row0, row0+nr-1))
-            if stat=="stddev":
-                tab.putcol(columns[0], mdata.std(axis=1).data, row0, nr)
-            elif stat=="sum":
-                tab.putcol(columns[0], mdata.sum(axis=1).data, row0, nr)
+        for spw in self.spw:
+
+            tab = table(self.ms, readonly=False)
+            # Write data into MS in chunks
+            rowchunk = rowchunk or self.nrows/10
+            for row0 in range(0, self.nrows, rowchunk):
+                nr = min(rowchunk, self.nrows-row0)
+                # Shape for this chunk
+                dshape = [nr, self.spw[spw]['nchan'], self.ncor]
+                print dshape, data[spw].shape
+                __data = numpy.ones(dshape, dtype=numpy.float32) * data[spw][numpy.newaxis,:,numpy.newaxis]
+                # Consider old weights if user wants to
+                if multiply_old_weights:
+                    old_weight = tab.getcol('WEIGHT', row0, nr)
+                    print("Multiplying old weights into WEIGHT_SPECTRUM")
+                    __data *= old_weight[:,numpy.newaxis,:]
+                # make a masked array to compute stats using unflagged data
+                flags = tab.getcol('FLAG', row0, nr)
+                mdata = ma.masked_array(__data, mask=flags)
+                
+                print("Populating {0:s} column (rows {1:d} to {2:d})".format(columns[1], row0, row0+nr-1))
+                tab.putcol(columns[1], __data, row0, nr)
+                
+                print("Populating {0:s} column (rows {1:d} to {2:d})".format(columns[0], row0, row0+nr-1))
+                if stat=="stddev":
+                    tab.putcol(columns[0], mdata.std(axis=1).data, row0, nr)
+                elif stat=="sum":
+                    tab.putcol(columns[0], mdata.sum(axis=1).data, row0, nr)
 
         # Done
         tab.close()

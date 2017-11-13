@@ -1,8 +1,8 @@
-FROM kernsuite/base:1
+FROM kernsuite/base:3
 RUN docker-apt-install python-casacore \ 
-    python-numpy python-owlcat \
-    meqtrees-timba
-
+    meqtrees
+RUN docker-apt-install python-pip
+RUN pip install -U pip
 ADD . /src
 RUN pip install /src
 

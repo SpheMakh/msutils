@@ -49,16 +49,11 @@ class MSNoise(object):
         self.msinfo = msutils.summary(self.ms, display=False)
         self.nrows = self.msinfo['NROW']
         self.ncor = self.msinfo['NCOR']
-        freq0 = self.msinfo['SPW']['REF_FREQUENCY']
-        bw = self.msinfo['SPW']['TOTAL_BANDWIDTH']
-        nchan = self.msinfo['SPW']['NUM_CHAN']
-        self.spw = {}
-        self.nspw = len(bw)
-        # Combine spectral windows
-        for spwid,nc in enumerate(nchan):
-            dfreq = bw[spwid]/nc
-            freqs = freq0[spwid] + numpy.arange(nc)*dfreq
-            self.spw[spwid] = {'freqs': freqs, 'nchan': nchan[spwid]}
+        self.spw = {
+            "freqs" : self.msinfo['SPW']['CHAN_FREQ'],
+            "nchan" : self.msinfo['SPW']['NUM_CHAN'],
+        }
+        self.nspw = len(self.spw['freqs'])
 
     def estimate_noise(self, corr=None, autocorr=False):
         """
@@ -124,8 +119,8 @@ class MSNoise(object):
         color = iter(cm.rainbow(numpy.linspace(0,1,self.nspw)))
         noise = []
         weights = []
-        for spw in self.spw.itervalues():
-            freqs = spw['freqs']*1e-6
+        for i in xrange(self.nspw):
+            freqs = numpy.array(self.spw['freqs'][i], dtype=numpy.float32)*1e-6
             _noise = fit_func(freqs)
             _weights = 1.0/_noise**2
 
@@ -178,16 +173,14 @@ class MSNoise(object):
 
                        )
 
-        for spw in self.spw:
-
+        for spw in xrange(self.nspw):
             tab = table(self.ms, readonly=False)
             # Write data into MS in chunks
             rowchunk = rowchunk or self.nrows/10
             for row0 in range(0, self.nrows, rowchunk):
                 nr = min(rowchunk, self.nrows-row0)
                 # Shape for this chunk
-                dshape = [nr, self.spw[spw]['nchan'], self.ncor]
-                print dshape, data[spw].shape
+                dshape = [nr, self.spw['nchan'][spw], self.ncor]
                 __data = numpy.ones(dshape, dtype=numpy.float32) * data[spw][numpy.newaxis,:,numpy.newaxis]
                 # Consider old weights if user wants to
                 if multiply_old_weights:

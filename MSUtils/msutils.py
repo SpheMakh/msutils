@@ -66,7 +66,7 @@ def summary(msname, outfile=None, display=True):
         
     for key, _tab in tabs.iteritems():
         if key == 'SPW':
-            colnames = 'MEAS_FREQ_REF REF_FREQUENCY TOTAL_BANDWIDTH NAME NUM_CHAN IF_CONV_CHAIN NET_SIDEBAND FREQ_GROUP_NAME'.split()
+            colnames = 'CHAN_FREQ MEAS_FREQ_REF REF_FREQUENCY TOTAL_BANDWIDTH NAME NUM_CHAN IF_CONV_CHAIN NET_SIDEBAND FREQ_GROUP_NAME'.split()
         else:
             colnames = _tab.colnames()
         for name in colnames:

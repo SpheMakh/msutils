@@ -1,14 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import itertools 
-import time as T
-import pandas as pd
+#import itertools 
+#import time as T
+#import pandas as pd
 import astropy
-from astropy.time import Time
+#from astropy.time import Time
 #import katdal as kd
 from pyrap.tables import table
-import collections
+#import collections
 import matplotlib
+matplotlib.use('Agg')
 
 
 def plot_bandpass_table(gain_table, plt_scale, plt_dpi, plot_file):
@@ -73,13 +74,13 @@ def plot_bandpass_table(gain_table, plt_scale, plt_dpi, plot_file):
    matplotlib.rcParams['axes.linewidth'] = 3.0
    matplotlib.rcParams['legend.framealpha'] = 0.5
 #   matplotlib.rcParams[]
-   
+   print "Starting plotting process"
    plt_dpi=800
    f, axarr = plt.subplots(nplts, nplts, dpi=plt_dpi, figsize=(nplts*plt_scale,nplts*plt_scale))
    f.text(0.5,0.94,"Bandpass Plot",ha='center',fontsize=40)
    f.text(0.5, 0.04, 'Channel', ha='center',fontsize=30)
    f.text(0.04, 0.5, 'Gain Amp', va='center', rotation='vertical',fontsize=30)
-
+   print "Defining plots completed"
 #Plot amplitudes first
    for ant in xrange(N_ants):
        for scan in xrange(nscans):
@@ -89,10 +90,12 @@ def plot_bandpass_table(gain_table, plt_scale, plt_dpi, plot_file):
               axarr[ant // nplts, ant % nplts].legend()
        axarr[ant // nplts, ant % nplts].set_title('Antenna '+str(ant_names[ant]))
        axarr[ant // nplts, ant % nplts].set_ylim(np.round(np.min(Gsols_HH_amp),1)-0.05,np.round(np.max(Gsols_HH_amp),1)+0.05)
+   print "iterating finished..."
    plot_f = plot_file+"bandpass-amp.png"
    f.savefig(plot_f) 
+   print "plotting finished"
    plt.close(f)
-
+   print "cleaning up"
    f, axarr = plt.subplots(nplts, nplts, dpi=plt_dpi, figsize=(nplts*plt_scale,nplts*plt_scale))
    f.text(0.5,0.94,"Bandpass Plot",ha='center',fontsize=40)
    f.text(0.5, 0.04, 'Channel', ha='center',fontsize=30)
@@ -110,7 +113,10 @@ def plot_bandpass_table(gain_table, plt_scale, plt_dpi, plot_file):
    plot_f = plot_file+"-bandpass-phase.png"
    f.savefig(plot_f)
    plt.close(f)
-
+   G_tab.close()
+   G_tab_names.close()
+   plt.clf()
+   print "Plotting and cleaning over"
    return
 
 def plot_gain_table(gain_table, plt_scale, plt_dpi, plot_file):
@@ -230,7 +236,9 @@ def plot_gain_table(gain_table, plt_scale, plt_dpi, plot_file):
    plot_f = plot_file+"-gain-ph.png"
    f.savefig(plot_f)
    plt.close(f)
-
+   G_tab.close()
+   G_tab_names.close()
+   plt.close('all')
    return
 
 def plot_delay_table(gain_table, plt_scale, plt_dpi, plot_file):
@@ -318,7 +326,9 @@ def plot_delay_table(gain_table, plt_scale, plt_dpi, plot_file):
    plot_f = plot_file+"-delay.png"
    f.savefig(plot_f)
    plt.close(f)
-
+   plt.close('all')
+   G_tab.close()
+   G_tab_names.close()
    return
 
 def gain_plotter(caltable,typ,outfile,plt_scale=6,plt_dpi=600):
@@ -329,10 +339,6 @@ def gain_plotter(caltable,typ,outfile,plt_scale=6,plt_dpi=600):
         plot_gain_table(caltable,plt_scale,plt_dpi,outfile)
     if (typ=='bandpass'):
         plot_bandpass_table(caltable,plt_scale,plt_dpi,outfile)
-
+        print "Ready for new plots."
     return
 
-gain_plotter('meerkathi-12A-405.sb11468652.eb11592823.56163.7871827662-1gc1.K0','delay','fin_test')
-#plot_bandpass_table('meerkathi-12A-405.sb11468652.eb11592823.56163.7871827662-1gc1.B0', 6, 800,'temp_plot')
-#plot_gain_table('meerkathi-12A-405.sb11468652.eb11592823.56163.7871827662-1gc1.F0', 6, 'temp_plot')
-#plot_delay_table('meerkathi-12A-405.sb11468652.eb11592823.56163.7871827662-1gc1.K0', 6, 'temp_plot')

@@ -1,15 +1,8 @@
-import matplotlib.pyplot as plt
-import numpy as np
-#import itertools 
-#import time as T
-#import pandas as pd
-import astropy
-#from astropy.time import Time
-#import katdal as kd
-from pyrap.tables import table
-#import collections
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+from pyrap.tables import table
 
 
 def plot_bandpass_table(gain_table, plt_scale, plt_dpi, plot_file):
@@ -339,6 +332,5 @@ def gain_plotter(caltable,typ,outfile,plt_scale=6,plt_dpi=600):
         plot_gain_table(caltable,plt_scale,plt_dpi,outfile)
     if (typ=='bandpass'):
         plot_bandpass_table(caltable,plt_scale,plt_dpi,outfile)
-        print "Ready for new plots."
     return
 

@@ -1,22 +1,15 @@
-import matplotlib.pyplot as plt
-import numpy as np
-#import itertools 
-#import time as T
-#import pandas as pd
-import astropy
-#from astropy.time import Time
-#import katdal as kd
-from pyrap.tables import table
-#import collections
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+from pyrap.tables import table
 
-
-def plot_bandpass_table(gain_table, plt_scale, plt_dpi, plot_file):
+def plot_bandpass_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Reads in the gain table; makes plots of gain amplitude/phase with 
 #time/frequency for all the antennas.
 
 #Read in the table
+   plot_file = plot_file or gain_table+'.png'
    G_tab = table(gain_table)
    print 'Reading gain table:', gain_table, '\n'
    G_tab_names = table(gain_table+"::ANTENNA")
@@ -56,13 +49,10 @@ def plot_bandpass_table(gain_table, plt_scale, plt_dpi, plot_file):
    Gsols_VV_amp = abs(Gsols_VV_flag)
    Gsols_HH_ph = np.angle(Gsols_HH_flag,deg=True)
    Gsols_VV_ph = np.angle(Gsols_VV_flag,deg=True)
-   
-
-
 
 #Plotting
 #Plot in a more or less square grid.
-   nplts = int(np.sqrt(N_ants))       #(if non zero remainder, add one)
+   nplts = int(np.sqrt(N_ants))+1       #(if non zero remainder, add one)
 
 #Set Global matplotlib options
    matplotlib.rcParams['lines.markersize'] = 4.0
@@ -117,13 +107,13 @@ def plot_bandpass_table(gain_table, plt_scale, plt_dpi, plot_file):
    G_tab_names.close()
    plt.clf()
    print "Plotting and cleaning over"
-   return
 
-def plot_gain_table(gain_table, plt_scale, plt_dpi, plot_file):
+def plot_gain_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Reads in the gain table; makes plots of gain amplitude/phase with 
 #time/frequency for all the antennas.
 
 #Read in the table
+   plot_file = plot_file or gain_table+'.png'
    G_tab = table(gain_table)
    print 'Reading gain table:', gain_table, '\n'
    G_tab_names = table(gain_table+"::ANTENNA")
@@ -168,7 +158,7 @@ def plot_gain_table(gain_table, plt_scale, plt_dpi, plot_file):
    
 #Plotting
 #Plot in a more or less square grid.
-   nplts = int(np.sqrt(N_ants))       #(if non zero remainder, add one)
+   nplts = int(np.sqrt(N_ants))+1       #(if non zero remainder, add one)
 
 
 #Set Global matplotlib options
@@ -190,12 +180,6 @@ def plot_gain_table(gain_table, plt_scale, plt_dpi, plot_file):
    obs_time = obs_time-obs_time[0]
 
    obs_time = obs_time/3600.0
-
-
-
-
-
-
 
    f, axarr = plt.subplots(nplts, nplts, dpi=plt_dpi, figsize=(nplts*plt_scale,nplts*plt_scale))
 #Plot amplitudes first
@@ -239,13 +223,13 @@ def plot_gain_table(gain_table, plt_scale, plt_dpi, plot_file):
    G_tab.close()
    G_tab_names.close()
    plt.close('all')
-   return
 
-def plot_delay_table(gain_table, plt_scale, plt_dpi, plot_file):
+def plot_delay_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Reads in the gain table; makes plots of gain amplitude/phase with 
 #time/frequency for all the antennas.
 
 #Read in the table
+   plot_file = plot_file or gain_table+'.png'
    G_tab = table(gain_table)
    print 'Reading gain table:', gain_table, '\n'
    G_tab_names = table(gain_table+"::ANTENNA")
@@ -284,7 +268,7 @@ def plot_delay_table(gain_table, plt_scale, plt_dpi, plot_file):
    Gsols_VV_plt = np.ma.masked_array(Gsols_VV, mask=flags[:,:,1])
    #Plotting
 #Plot in a more or less square grid.
-   nplts = int(np.sqrt(N_ants+1))       #(if non zero remainder, add one)
+   nplts = int(np.sqrt(N_ants))+1       #(if non zero remainder, add one)
    print "Number of plots:", nplts*nplts
 
 #Set Global matplotlib options
@@ -298,7 +282,6 @@ def plot_delay_table(gain_table, plt_scale, plt_dpi, plot_file):
    matplotlib.rcParams['legend.framealpha'] = 0.5
 #   matplotlib.rcParams['legend.frameon']='false'
 #Make a single plot for gain amplitude and phase, colourize different fields?
-
 
    obs_time = G_tab.getcol("TIME")
 
@@ -329,16 +312,14 @@ def plot_delay_table(gain_table, plt_scale, plt_dpi, plot_file):
    plt.close('all')
    G_tab.close()
    G_tab_names.close()
-   return
 
 def gain_plotter(caltable,typ,outfile,plt_scale=6,plt_dpi=600):
 #"Plots gaintables. Types should be 'delay', 'gain' or 'bandpass'. Scale is the plot scale, dpi is the plot dpi"
     if (typ=='delay'):
         plot_delay_table(caltable,plt_scale,plt_dpi,outfile)
-    if (typ=='gain'):
+    elif (typ=='gain'):
         plot_gain_table(caltable,plt_scale,plt_dpi,outfile)
-    if (typ=='bandpass'):
+    elif (typ=='bandpass'):
         plot_bandpass_table(caltable,plt_scale,plt_dpi,outfile)
-        print "Ready for new plots."
-    return
-
+    else:
+        raise RuntimeError('Gain table type "{}" not recognised'.format(typ))

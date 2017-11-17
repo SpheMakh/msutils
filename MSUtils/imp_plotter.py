@@ -52,7 +52,7 @@ def plot_bandpass_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 
 #Plotting
 #Plot in a more or less square grid.
-   nplts = int(np.sqrt(N_ants))       #(if non zero remainder, add one)
+   nplts = int(np.sqrt(N_ants))+1       #(if non zero remainder, add one)
 
 #Set Global matplotlib options
    matplotlib.rcParams['lines.markersize'] = 4.0
@@ -158,7 +158,7 @@ def plot_gain_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
    
 #Plotting
 #Plot in a more or less square grid.
-   nplts = int(np.sqrt(N_ants))       #(if non zero remainder, add one)
+   nplts = int(np.sqrt(N_ants))+1       #(if non zero remainder, add one)
 
 
 #Set Global matplotlib options
@@ -268,7 +268,7 @@ def plot_delay_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
    Gsols_VV_plt = np.ma.masked_array(Gsols_VV, mask=flags[:,:,1])
    #Plotting
 #Plot in a more or less square grid.
-   nplts = int(np.sqrt(N_ants+1))       #(if non zero remainder, add one)
+   nplts = int(np.sqrt(N_ants))+1       #(if non zero remainder, add one)
    print "Number of plots:", nplts*nplts
 
 #Set Global matplotlib options

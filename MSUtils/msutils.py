@@ -31,12 +31,12 @@ def summary(msname, outfile=None, display=True):
     }
 
     tabs = {
-        'FIELD'     :   pyrap.tables.table(msname+'/FIELD'),
-        'SPW'       :   pyrap.tables.table(msname+'/SPECTRAL_WINDOW'),
-        'ANT'       :   pyrap.tables.table(msname+'/ANTENNA'),
+        'FIELD'     :   pyrap.tables.table(msname+'::FIELD'),
+        'SPW'       :   pyrap.tables.table(msname+'::SPECTRAL_WINDOW'),
+        'ANT'       :   pyrap.tables.table(msname+'::ANTENNA'),
     }
 
-    state_tab = pyrap.tables.table(msname+'/STATE')
+    state_tab = pyrap.tables.table(msname+'::STATE')
     info['FIELD']['INTENTS'] = state_tab.getcol('OBS_MODE')
     state_tab.close()
 
@@ -232,7 +232,7 @@ def compute_vis_noise(msname, sefd, spw_id=0):
     """Computes nominal per-visibility noise"""
 
     tab = table(msname)
-    spwtab = table(msname + "/SPECTRAL_WINDOW")
+    spwtab = table(msname + "::SPECTRAL_WINDOW")
 
     freq0 = spwtab.getcol("CHAN_FREQ")[spw_id, 0]
     wavelength = 300e+6/freq0
@@ -259,7 +259,7 @@ def verify_antpos (msname, fix=False, hemisphere=None):
 
 
     if not hemisphere:
-        obs = table(msname+"/OBSERVATION").getcol("TELESCOPE_NAME")[0]
+        obs = table(msname+"::OBSERVATION").getcol("TELESCOPE_NAME")[0]
         print("observatory is %s"%obs)
         try:
           hemisphere = 1 if dm.observatory(obs)['m0']['value'] > 0 else -1
@@ -269,7 +269,7 @@ def verify_antpos (msname, fix=False, hemisphere=None):
           return 
     print("antenna Y positions should be of sign %+d"%hemisphere)
     
-    anttab = table(msname+"/ANTENNA", readonly=False)
+    anttab = table(msname+"::ANTENNA", readonly=False)
     pos = anttab.getcol("POSITION")
     wrong = pos[:,1]<0 if hemisphere>0 else pos[:,1]>0
     nw = sum(wrong)

@@ -17,10 +17,10 @@ def plot_bandpass_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
    print "Antennas present in the table:", ant_names
 
 #Get number of antennas (needed for plotting)       
-   Ant_n1 = G_tab.getcol("ANTENNA1")
-   Ant_n2 = G_tab.getcol("ANTENNA2")
-   Ant_list = list(set(np.append(Ant_n1,Ant_n2)))
-   N_ants = len(Ant_list)
+#   Ant_n1 = G_tab.getcol("ANTENNA1")
+#   Ant_n2 = G_tab.getcol("ANTENNA2")
+#   Ant_list = list(set(np.append(Ant_n1,Ant_n2)))
+   N_ants = len(ant_names)
    print 'Number of Antennas to plot:', N_ants    
    
 #Read in the flags
@@ -124,7 +124,7 @@ def plot_gain_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
    Ant_n1 = G_tab.getcol("ANTENNA1")
    Ant_n2 = G_tab.getcol("ANTENNA2")
    Ant_list = list(set(np.append(Ant_n1,Ant_n2)))
-   N_ants = len(Ant_list)
+   N_ants = len(ant_names)
    print 'Number of Antennas to plot:', N_ants
 
 #Read in the flags

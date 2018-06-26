@@ -344,7 +344,6 @@ def addnoise(msname, column='MODEL_DATA',
          
         for row0 in range(0, nrows, rowchunk):
             nr = min(rowchunk, nrows-row0)
-            dshape[0] = nr
             data = numpy.random.randn(nr, nchan, ncor) + 1j*numpy.random.randn(nr, nchan, ncor)
             if multi_chan_noise:
                 noise = noise[numpy.newaxis,:,numpy.newaxis]

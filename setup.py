@@ -51,7 +51,7 @@ def src_pkg_dirs(pkg_name):
     return pkg_dirs
 
 setup(name='msutils',
-      version="0.9.6",
+      version="0.9.7",
       description='Tools for playing with Measurement sets.',
       long_description=readme(),
       url='https://github.com/SpheMakh/msutils',

@@ -1,0 +1,8 @@
+FROM kernsuite/base:4
+RUN docker-apt-install python3-pip git
+ADD . /code
+ENV USER root
+WORKDIR /code
+RUN pip3 install pip setuptools -U
+RUN pip3 install /code
+RUN python3 -c "from MSUtils import msutils"

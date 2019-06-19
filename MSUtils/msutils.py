@@ -115,8 +115,8 @@ def summary(msname, outfile=None, display=True):
     # add correlation information
     tabcorr = pyrap.tables.table(msname+'::POLARIZATION')
     corr_type = tabcorr.getcol("CORR_TYPE")[0]
-    info["CORR"]["NUM_CORR"] = tabcorr.getcol("NUM_CORR")[0]
-    info["NCOR"] = info["CORR"]["NUM_CORR"]
+    info["CORR"]["NUM_CORR"] = int(tabcorr.getcol("NUM_CORR")[0])
+    info["NCOR"] = int(info["CORR"]["NUM_CORR"])
     corrs = []
     for ct in corr_type:
         corrs.append( STOKES_TYPES[ct] )

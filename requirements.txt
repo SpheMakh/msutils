@@ -1,4 +1,4 @@
 numpy
 scipy
 matplotlib
-#python-casacore
+dask-ms

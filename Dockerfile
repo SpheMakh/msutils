@@ -1,7 +1,4 @@
-FROM kernsuite/base:3
-RUN docker-apt-install python-casacore \ 
-    meqtrees
-RUN docker-apt-install python-pip
-RUN pip install -U pip pyyaml
+FROM kernsuite/base:5
+RUN docker-apt-install python3-casacore python3-pip
 ADD . /msutils-src
-RUN pip install /msutils-src
+RUN pip3 install /msutils-src

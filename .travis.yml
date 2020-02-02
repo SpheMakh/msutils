@@ -12,7 +12,7 @@ services:
 before_install:
 - true
 install:
-- docker build -t msutils .
+- docker build . -f .travis/${TARGET}.docker
 script:
 - true
 deploy:

@@ -1,4 +1,4 @@
-FROM kernsuite/base:4
+FROM kernsuite/base:5
 RUN docker-apt-install python-pip git
 RUN pip install -U mypy pip setuptools
 ENV USER root

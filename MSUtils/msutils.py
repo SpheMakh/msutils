@@ -130,7 +130,7 @@ def summary(msname, outfile=None, display=True):
     tab.close()
 
     if display:
-        print info
+        print(info)
     
     if outfile:
         with codecs.open(outfile, 'w', 'utf8') as stdw:

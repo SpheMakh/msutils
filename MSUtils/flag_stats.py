@@ -86,12 +86,12 @@ def antenna_flags_field(msname, fields=None, antennas=None):
     sum_all = sum(sum_per_field_spw)
     fractions = sum_all[:,0]/sum_all[:,1]
     stats = {}
-    for aid in ant_ids:
+    for i,aid in enumerate(ant_ids):
         ant_stats = {}
         ant_stats["name"] = ant_names[aid]
-        ant_stats["frac"] = fractions[aid]
-        ant_stats["sum"] = sum_all[aid][0]
-        ant_stats["counts"] = sum_all[aid][1]
+        ant_stats["frac"] = fractions[i]
+        ant_stats["sum"] = sum_all[i][0]
+        ant_stats["counts"] = sum_all[i][1]
         stats[aid] = ant_stats
 
     return stats

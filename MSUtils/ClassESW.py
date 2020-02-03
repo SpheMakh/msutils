@@ -119,14 +119,14 @@ class MSNoise(object):
         color = iter(cm.rainbow(numpy.linspace(0,1,self.nspw)))
         noise = []
         weights = []
-        for i in xrange(self.nspw):
+        for i in range(self.nspw):
             freqs = numpy.array(self.spw['freqs'][i], dtype=numpy.float32)*1e-6
             _noise = fit_func(freqs)
             _weights = 1.0/_noise**2
 
             if plot_stats:
                 # Use a differnet color to mark a new SPW
-                ax1.axvspan(freqs[0]/1e3, freqs[-1]/1e3, facecolor=color.next(), alpha=0.25)
+                ax1.axvspan(freqs[0]/1e3, freqs[-1]/1e3, facecolor=next(color), alpha=0.25)
                 # Plot noise/weights
                 l1, = ax1.plot(x/1e3, y, 'rx')
                 l2, = ax1.plot(freqs/1e3, _noise, 'k-')
@@ -173,7 +173,7 @@ class MSNoise(object):
 
                        )
 
-        for spw in xrange(self.nspw):
+        for spw in range(self.nspw):
             tab = table(self.ms, readonly=False)
             # Write data into MS in chunks
             rowchunk = rowchunk or self.nrows/10
@@ -191,10 +191,10 @@ class MSNoise(object):
                 flags = tab.getcol('FLAG', row0, nr)
                 mdata = ma.masked_array(__data, mask=flags)
                 
-                print("Populating {0:s} column (rows {1:d} to {2:d})".format(columns[1], row0, row0+nr-1))
+                print(("Populating {0:s} column (rows {1:d} to {2:d})".format(columns[1], row0, row0+nr-1)))
                 tab.putcol(columns[1], __data, row0, nr)
                 
-                print("Populating {0:s} column (rows {1:d} to {2:d})".format(columns[0], row0, row0+nr-1))
+                print(("Populating {0:s} column (rows {1:d} to {2:d})".format(columns[0], row0, row0+nr-1)))
                 if stat=="stddev":
                     tab.putcol(columns[0], mdata.std(axis=1).data, row0, nr)
                 elif stat=="sum":

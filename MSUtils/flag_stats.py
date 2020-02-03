@@ -35,7 +35,6 @@ def _aggregate(x, keepdims, axis):
     return _combine(x, keepdims, axis)
 
 def antenna_flags_field(msname, fields=None, antennas=None):
-    ds_mss = xds_from_ms(msname, group_cols=["FIELD_ID", "DATA_DESC_ID"], chunks={'row': 100000})
     ds_ant = xds_from_table(msname+"::ANTENNA")[0]
     ds_field = xds_from_table(msname+"::FIELD")[0]
 
@@ -61,10 +60,11 @@ def antenna_flags_field(msname, fields=None, antennas=None):
     nant = len(ant_ids)
     nfield = len(field_ids)
     
+    fields_str = ", ".join(map(str, field_ids))
+    ds_mss = xds_from_ms(msname, group_cols=["FIELD_ID", "DATA_DESC_ID"], 
+            chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
     flag_sum_computes = []
     for ds in ds_mss:
-        if ds.FIELD_ID not in field_ids:
-            continue
         flag_sums = da.blockwise(_get_flags, ("row",),
                                     ant_ids, ("ant",),
                                     ds.ANTENNA1.data, ("row",),

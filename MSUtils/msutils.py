@@ -100,7 +100,7 @@ def summary(msname, outfile=None, display=True):
         info['FIELD']['PERIOD'][fid] = total_length
         ftab.close()
         
-    for key, _tab in tabs.iteritems():
+    for key, _tab in tabs.items():
         if key == 'SPW':
             colnames = 'CHAN_FREQ MEAS_FREQ_REF REF_FREQUENCY TOTAL_BANDWIDTH NAME NUM_CHAN IF_CONV_CHAIN NET_SIDEBAND FREQ_GROUP_NAME'.split()
         else:
@@ -162,7 +162,7 @@ def addcol(msname, colname=None, shape=None,
         print('Column already exists')
         return 'exists'
 
-    print('Attempting to add %s column to %s'%(colname,msname))
+    print(('Attempting to add %s column to %s'%(colname,msname)))
 
     valuetype = valuetype or 'complex'
 
@@ -203,7 +203,7 @@ def addcol(msname, colname=None, shape=None,
     else:
         spwids = set(tab.getcol('DATA_DESC_ID'))
         for spw in spwids:
-            print('Initialising {0:s} column with {1}. DDID is {2:d}'.format(colname, init_with, spw))
+            print(('Initialising {0:s} column with {1}. DDID is {2:d}'.format(colname, init_with, spw)))
             tab_spw = tab.query('DATA_DESC_ID=={0:d}'.format(spw))
             nrows = tab_spw.nrows()
 
@@ -212,7 +212,7 @@ def addcol(msname, colname=None, shape=None,
             for row0 in range(0,nrows,rowchunk):
                 nr = min(rowchunk,nrows-row0)
                 dshape[0] = nr
-                print("Wrtiting to column  %s (rows %d to %d)"%(colname, row0, row0+nr-1))
+                print(("Wrtiting to column  %s (rows %d to %d)"%(colname, row0, row0+nr-1)))
                 tab_spw.putcol(colname,numpy.ones(dshape,dtype=type(init_with))*init_with,row0,nr)
             tab_spw.close()
     tab.close()
@@ -227,7 +227,7 @@ def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, subtract=False
 
     tab = table(msname, readonly=False)
     if outcol not in tab.colnames():
-        print('outcol {0:s} does not exist, will add it first.'.format(outcol))
+        print(('outcol {0:s} does not exist, will add it first.'.format(outcol)))
         addcol(msname, outcol, clone=col1 or cols[0])
 
     spws = set(tab.getcol('DATA_DESC_ID'))
@@ -237,7 +237,7 @@ def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, subtract=False
         rowchunk = nrows//10 if nrows > 10000 else nrows
         for row0 in range(0, nrows, rowchunk):
             nr = min(rowchunk, nrows-row0)
-            print("Wrtiting to column  %s (rows %d to %d)"%(outcol, row0, row0+nr-1))
+            print(("Wrtiting to column  %s (rows %d to %d)"%(outcol, row0, row0+nr-1)))
             if subtract:
                 data = tab_spw.getcol(col1, row0, nr) - tab_spw.getcol(col2, row0, nr)
             else:
@@ -291,10 +291,10 @@ def compute_vis_noise(msname, sefd, spw_id=0):
     tab.close()
     spwtab.close()
 
-    print("%s freq %.2f MHz (lambda=%.2fm), bandwidth %.2g kHz, %.2fs integrations, %.2fh synthesis"%(msname, 
-        freq0*1e-6, wavelength, bw*1e-3, dt, dtf/3600))
+    print(("%s freq %.2f MHz (lambda=%.2fm), bandwidth %.2g kHz, %.2fs integrations, %.2fh synthesis"%(msname, 
+        freq0*1e-6, wavelength, bw*1e-3, dt, dtf/3600)))
     noise = sefd/math.sqrt(abs(2*bw*dt))
-    print("SEFD of %.2f Jy gives per-visibility noise of %.2f mJy"%(sefd, noise*1000))
+    print(("SEFD of %.2f Jy gives per-visibility noise of %.2f mJy"%(sefd, noise*1000)))
 
     return noise
 
@@ -307,14 +307,14 @@ def verify_antpos (msname, fix=False, hemisphere=None):
 
     if not hemisphere:
         obs = table(msname+"::OBSERVATION").getcol("TELESCOPE_NAME")[0]
-        print("observatory is %s"%obs)
+        print(("observatory is %s"%obs))
         try:
           hemisphere = 1 if dm.observatory(obs)['m0']['value'] > 0 else -1
         except:
           traceback.print_exc();
-          print("WARNING:: %s is unknown, or pyrap.measures is missing. Will not verify antenna positions."%obs)
+          print(("WARNING:: %s is unknown, or pyrap.measures is missing. Will not verify antenna positions."%obs))
           return 
-    print("antenna Y positions should be of sign %+d"%hemisphere)
+    print(("antenna Y positions should be of sign %+d"%hemisphere))
     
     anttab = table(msname+"::ANTENNA", readonly=False)
     pos = anttab.getcol("POSITION")
@@ -326,9 +326,9 @@ def verify_antpos (msname, fix=False, hemisphere=None):
             abort("%s/ANTENNA has $nw incorrect Y antenna positions. Check your coordinate conversions (from UVFITS?), or run verify_antpos[fix=True]"%msname)
         pos[wrong,1] *= -1; 
         anttab.putcol("POSITION", pos)
-        print("WARNING:%s/ANTENNA: %s incorrect antenna positions were adjusted (Y sign flipped)"%(msname, nw))
+        print(("WARNING:%s/ANTENNA: %s incorrect antenna positions were adjusted (Y sign flipped)"%(msname, nw)))
     else:
-        print("%s/ANTENNA: all antenna positions appear to have correct Y sign"%msname)
+        print(("%s/ANTENNA: all antenna positions appear to have correct Y sign"%msname))
 
 
 def prep(msname, verify=False):
@@ -344,7 +344,7 @@ def prep(msname, verify=False):
     
     # check if addbitflagcol exists
     if spawn.find_executable("addbitflagcol"):
-        print("Adding bitflag column to %s"%msname)
+        print(("Adding bitflag column to %s"%msname))
         subprocess.check_call(['addbitflagcol', msname],
                          stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr, 
                          stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)
@@ -398,9 +398,9 @@ def addnoise(msname, column='MODEL_DATA',
 
             if addToCol: 
                 data += tab_spw.getcol(addToCol, row0, nr)
-                print("%s + noise --> %s (rows %d to %d)"%(addToCol, column, row0, row0+nr-1))
+                print(("%s + noise --> %s (rows %d to %d)"%(addToCol, column, row0, row0+nr-1)))
             else: 
-                print("Adding noise to column %s (rows %d to %d)"%(column, row0, row0+nr-1))
+                print(("Adding noise to column %s (rows %d to %d)"%(column, row0, row0+nr-1)))
 
             tab_spw.putcol(column, data, row0, nr)
         tab_spw.close()

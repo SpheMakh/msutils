@@ -76,14 +76,14 @@ def summary(msname, outfile=None, display=True):
     info['FIELD']['INTENTS'] = state_tab.getcol('OBS_MODE')
     state_tab.close()
 
-    field_ids = tabs['FIELD'].getcol('SOURCE_ID')
+    nfields = len(info['FIELD']['INTENTS'])
     nant = tabs['ANT'].nrows()
 
     info['EXPOSURE'] = tab.getcell("EXPOSURE", 0)
 
-    info['FIELD']['STATE_ID'] = [None]*len(field_ids)
-    info['FIELD']['PERIOD'] = [None]*len(field_ids)
-    for fid in field_ids:
+    info['FIELD']['STATE_ID'] = [None]*nfields
+    info['FIELD']['PERIOD'] = [None]*nfields
+    for fid in range(nfields):
         ftab = tab.query('FIELD_ID=={0:d}'.format(fid))
         state_id = ftab.getcol('STATE_ID')[0]
         info['FIELD']['STATE_ID'][fid] = int(state_id)

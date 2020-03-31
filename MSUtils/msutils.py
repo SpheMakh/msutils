@@ -77,7 +77,7 @@ def summary(msname, outfile=None, display=True):
     state_tab.close()
 
     fields = numpy.unique(tab.getcol("FIELD_ID"))
-    info["FIELD"]["FIELD_ID"] = list(fields)
+    info["FIELD"]["FIELD_ID"] = list(map(int, fields))
     nfields = len(fields)
     nant = tabs['ANT'].nrows()
 

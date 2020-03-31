@@ -77,17 +77,18 @@ def summary(msname, outfile=None, display=True):
     state_tab.close()
 
     fields = numpy.unique(tab.getcol("FIELD_ID"))
-    nfields = len(nfields)
+    info["FIELD"]["FIELD_ID"] = list(fields)
+    nfields = len(fields)
     nant = tabs['ANT'].nrows()
 
     info['EXPOSURE'] = tab.getcell("EXPOSURE", 0)
 
     info['FIELD']['STATE_ID'] = [None]*nfields
     info['FIELD']['PERIOD'] = [None]*nfields
-    for fid in fields:
+    for i, fid in enumerate(fields):
         ftab = tab.query('FIELD_ID=={0:d}'.format(fid))
         state_id = ftab.getcol('STATE_ID')[0]
-        info['FIELD']['STATE_ID'][fid] = int(state_id)
+        info['FIELD']['STATE_ID'][i] = int(state_id)
         scans = {}
         total_length = 0
         for scan in set(ftab.getcol('SCAN_NUMBER')):
@@ -98,7 +99,7 @@ def summary(msname, outfile=None, display=True):
             total_length += length
 
         info['SCAN'][str(fid)] = scans
-        info['FIELD']['PERIOD'][fid] = total_length
+        info['FIELD']['PERIOD'][i] = total_length
         ftab.close()
         
     for key, _tab in tabs.items():

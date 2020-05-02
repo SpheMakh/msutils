@@ -51,7 +51,7 @@ def antenna_flags_field(msname, fields=None, antennas=None):
 
     if antennas:
         if isinstance(antennas[0], str):
-            antennas_ids = map(antennas.index, antennas)
+            ant_ids = map(antennas.index, antennas)
         else:
             ant_ids = antennas
     else:

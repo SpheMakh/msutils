@@ -47,7 +47,7 @@ def antenna_flags_field(msname, fields=None, antennas=None):
         else:
             field_ids = fields
     else:
-        field_ids = range(len(field_names))
+        field_ids = list(range(len(field_names)))
 
     if antennas:
         if isinstance(antennas[0], str):
@@ -55,7 +55,7 @@ def antenna_flags_field(msname, fields=None, antennas=None):
         else:
             ant_ids = antennas
     else:
-        ant_ids = range(len(ant_names))
+        ant_ids = list(range(len(ant_names)))
 
     nant = len(ant_ids)
     nfield = len(field_ids)

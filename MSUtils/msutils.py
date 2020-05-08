@@ -76,17 +76,19 @@ def summary(msname, outfile=None, display=True):
     info['FIELD']['INTENTS'] = state_tab.getcol('OBS_MODE')
     state_tab.close()
 
-    field_ids = tabs['FIELD'].getcol('SOURCE_ID')
+    fields = numpy.unique(tab.getcol("FIELD_ID"))
+    info["FIELD"]["FIELD_ID"] = list(map(int, fields))
+    nfields = len(fields)
     nant = tabs['ANT'].nrows()
 
     info['EXPOSURE'] = tab.getcell("EXPOSURE", 0)
 
-    info['FIELD']['STATE_ID'] = [None]*len(field_ids)
-    info['FIELD']['PERIOD'] = [None]*len(field_ids)
-    for fid in field_ids:
+    info['FIELD']['STATE_ID'] = [None]*nfields
+    info['FIELD']['PERIOD'] = [None]*nfields
+    for i, fid in enumerate(fields):
         ftab = tab.query('FIELD_ID=={0:d}'.format(fid))
         state_id = ftab.getcol('STATE_ID')[0]
-        info['FIELD']['STATE_ID'][fid] = int(state_id)
+        info['FIELD']['STATE_ID'][i] = int(state_id)
         scans = {}
         total_length = 0
         for scan in set(ftab.getcol('SCAN_NUMBER')):
@@ -97,10 +99,10 @@ def summary(msname, outfile=None, display=True):
             total_length += length
 
         info['SCAN'][str(fid)] = scans
-        info['FIELD']['PERIOD'][fid] = total_length
+        info['FIELD']['PERIOD'][i] = total_length
         ftab.close()
         
-    for key, _tab in tabs.items():
+    for key, _tab in list(tabs.items()):
         if key == 'SPW':
             colnames = 'CHAN_FREQ MEAS_FREQ_REF REF_FREQUENCY TOTAL_BANDWIDTH NAME NUM_CHAN IF_CONV_CHAIN NET_SIDEBAND FREQ_GROUP_NAME'.split()
         else:

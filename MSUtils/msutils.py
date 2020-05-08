@@ -102,7 +102,7 @@ def summary(msname, outfile=None, display=True):
         info['FIELD']['PERIOD'][i] = total_length
         ftab.close()
         
-    for key, _tab in tabs.items():
+    for key, _tab in list(tabs.items()):
         if key == 'SPW':
             colnames = 'CHAN_FREQ MEAS_FREQ_REF REF_FREQUENCY TOTAL_BANDWIDTH NAME NUM_CHAN IF_CONV_CHAIN NET_SIDEBAND FREQ_GROUP_NAME'.split()
         else:

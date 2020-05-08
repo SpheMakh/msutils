@@ -11,14 +11,14 @@ def plot_bandpass_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Read in the table
    plot_file = plot_file or gain_table+'.png'
    G_tab = table(gain_table)
-   print('Reading gain table:', gain_table, '\n')
+   print(('Reading gain table:', gain_table, '\n'))
    G_tab_names = table(gain_table+"::ANTENNA")
    ant_names = G_tab_names.getcol("NAME")
-   print("Antennas present in the table:", ant_names)
+   print(("Antennas present in the table:", ant_names))
 
 #Get number of antennas (needed for plotting)       
    N_ants = len(ant_names)
-   print('Number of Antennas to plot:', N_ants)    
+   print(('Number of Antennas to plot:', N_ants))    
 
 
 #Read in the Frequency information
@@ -32,7 +32,7 @@ def plot_bandpass_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Read in the solutions
    Gsols = G_tab.getcol("CPARAM")
    nchans = Gsols.shape[1]
-   nsols  = Gsols.shape[0]/N_ants
+   nsols  = Gsols.shape[0]//N_ants
    npol = Gsols.shape[2]        
 #Read in the error. Additions of the parameter errors in a later release.
    Gsols_err = G_tab.getcol("PARAMERR")
@@ -137,17 +137,17 @@ def plot_gain_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Read in the table
    plot_file = plot_file or gain_table+'.png'
    G_tab = table(gain_table)
-   print('Reading gain table:', gain_table, '\n')
+   print(('Reading gain table:', gain_table, '\n'))
    G_tab_names = table(gain_table+"::ANTENNA")
    ant_names = G_tab_names.getcol("NAME")
-   print("Antennas present in the table:", ant_names)
+   print(("Antennas present in the table:", ant_names))
 
 #Get number of antennas (needed for plotting)       
    Ant_n1 = G_tab.getcol("ANTENNA1")
    Ant_n2 = G_tab.getcol("ANTENNA2")
    Ant_list = list(set(np.append(Ant_n1,Ant_n2)))
    N_ants = len(ant_names)
-   print('Number of Antennas to plot:', N_ants)
+   print(('Number of Antennas to plot:', N_ants))
 
 #Read in the flags
    flags = G_tab.getcol("FLAG")
@@ -155,8 +155,8 @@ def plot_gain_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Read in the solutions
    Gsols = G_tab.getcol("CPARAM")
    nchans = Gsols.shape[1]
-   nsols  = Gsols.shape[0]/N_ants
-   print("Number of solution per antenna:", nsols)
+   nsols  = Gsols.shape[0]//N_ants
+   print(("Number of solution per antenna:", nsols))
    npol = Gsols.shape[2]
 #Read in the error.
    Gsols_err = G_tab.getcol("PARAMERR")
@@ -169,7 +169,7 @@ def plot_gain_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 
    Gsols_HH = Gsols[:,:,0]
    Gsols_VV = Gsols[:,:,1]
-   print("Shape of solutions:", np.shape(Gsols_HH), np.shape(Gsols_VV))
+   print(("Shape of solutions:", np.shape(Gsols_HH), np.shape(Gsols_VV)))
    Gsols_HH_flag = np.ma.masked_array(Gsols_HH, mask=flags[:,:,0])
    Gsols_VV_flag = np.ma.masked_array(Gsols_VV, mask=flags[:,:,1])
    Gsols_HH_amp = abs(Gsols_HH_flag)
@@ -272,17 +272,17 @@ def plot_delay_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Read in the table
    plot_file = plot_file or gain_table+'.png'
    G_tab = table(gain_table)
-   print('Reading gain table:', gain_table, '\n')
+   print(('Reading gain table:', gain_table, '\n'))
    G_tab_names = table(gain_table+"::ANTENNA")
    ant_names = G_tab_names.getcol("NAME")
-   print("Antennas present in the table:", ant_names)
+   print(("Antennas present in the table:", ant_names))
 
 #Get number of antennas (needed for plotting)       
    Ant_n1 = G_tab.getcol("ANTENNA1")
    Ant_n2 = G_tab.getcol("ANTENNA2")
   # Ant_list = list(set(np.append(Ant_n1,Ant_n2)))
    N_ants = len(ant_names)
-   print('Number of Antennas to plot:', N_ants)
+   print(('Number of Antennas to plot:', N_ants))
 
 #Read in the flags
    flags = G_tab.getcol("FLAG")
@@ -290,8 +290,8 @@ def plot_delay_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 #Read in the solutions
    Gsols = G_tab.getcol("FPARAM")
    nchans = Gsols.shape[1]
-   nsols  = Gsols.shape[0]/N_ants   
-   print("Number of solutions per antenna:", nsols)
+   nsols  = Gsols.shape[0]//N_ants   
+   print(("Number of solutions per antenna:", nsols))
    npol = Gsols.shape[2]
 #Read in the error.
    Gsols_err = G_tab.getcol("PARAMERR")
@@ -304,13 +304,13 @@ def plot_delay_table(gain_table, plt_scale=6, plt_dpi=600, plot_file=None):
 
    Gsols_HH = Gsols[:,:,0]
    Gsols_VV = Gsols[:,:,1]
-   print("Shape of solutions:", np.shape(Gsols_HH), np.shape(Gsols_VV))
+   print(("Shape of solutions:", np.shape(Gsols_HH), np.shape(Gsols_VV)))
    Gsols_HH_plt = np.ma.masked_array(Gsols_HH, mask=flags[:,:,0])
    Gsols_VV_plt = np.ma.masked_array(Gsols_VV, mask=flags[:,:,1])
    #Plotting
 #Plot in a more or less square grid.
    nplts = int(np.sqrt(N_ants))+1       #(if non zero remainder, add one)
-   print("Number of plots:", nplts*nplts)
+   print(("Number of plots:", nplts*nplts))
 
 #Set Global matplotlib options
    matplotlib.rcParams['lines.markersize'] = 15.0

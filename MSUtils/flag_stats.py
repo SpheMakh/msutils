@@ -6,6 +6,9 @@ import dask.array as da
 import numpy
 import sys
 
+import casacore.measures
+
+
 
 def _get_flags(names, antenna1, antenna2, flags):
     names = names[0]
@@ -34,12 +37,79 @@ def _combine(x, keepdims, axis):
 def _aggregate(x, keepdims, axis):
     return _combine(x, keepdims, axis)
 
+def _distance(xyz1, xyz2):
+    """Distance between two points in a three dimension coordinate system"""
+    x = xyz2[0] - xyz1[0]
+    y = xyz2[1] - xyz1[1]
+    z = xyz2[2] - xyz1[2]
+    d2 = (x * x) + (y * y) + (z * z)
+    d = numpy.sqrt(d2)
+    return d
+
+def wgs84_to_ecef(lon, lat, alt):
+    """
+    Convert wgs84(latitude (deg), longitude(deg), elevation(deg)) to
+    Earth Centred Earth fixed coordinates (X(m), Y(m), Z(m)).
+    Coordinates in the ITRF format should be converted to WGS84 coordinate system for consistency.
+    This function is an implementation based on the following reference:
+    https://docs.hisparc.nl/coordinates/HiSPARC_coordinates.pdf
+
+    Parameters
+    ----------:
+    lat: :obj:`float`
+        Latitude in degrees
+    lon: :obj:`float`
+        Longitude in degrees
+    alt: :obj:`float`
+        Altitude in metres
+
+    Returns
+    -------
+    X, Y, Z:  ECEF coordinates in metres
+
+    """
+
+    # set up earth's shape ellipsoid approximation
+    # semi major axis
+    a = 6378137.0
+    # flattening
+    f = 1 / 298.257223563
+    # semi-minor axis
+    b = a - a * f
+    # eccentricity
+    e = numpy.sqrt((2 * f) - (f**2))
+    # Normal: Distance between a location on the ellipsoid and the
+    # intersection of its nromal and the ellipsoid's z-axis
+    N = a / numpy.sqrt(1 - e**2 * numpy.sin(lat)**2)
+    # altitude
+    h = alt
+    # transformation
+    X = (N + h) * numpy.cos(lat) * numpy.cos(lon)
+    Y = (N + h) * numpy.cos(lat) * numpy.sin(lon)
+    Z = (((b**2 / a**2) * N) + h) * numpy.sin(lat)
+    return X, Y, Z
+
+
 def antenna_flags_field(msname, fields=None, antennas=None):
     ds_ant = xds_from_table(msname+"::ANTENNA")[0]
     ds_field = xds_from_table(msname+"::FIELD")[0]
+    ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
 
     ant_names = ds_ant.NAME.data.compute()
     field_names = ds_field.NAME.data.compute()
+    ant_positions = ds_ant.POSITION.data.compute()
+
+    try:
+        # Get observatory name and centre of array
+        obs_name = ds_obs.TELESCOPE_NAME.data.compute()[0]
+        me = casacore.measures.measures()
+        obs_cofa = me.observatory(obs_name)
+        lon, lat, alt = (obs_cofa['m0']['value'],
+                         obs_cofa['m1']['value'],
+                         obs_cofa['m2']['value'])
+        cofa = wgs84_to_ecef(lon, lat, alt)
+    except:
+        raise Exception(f"Observatory {obs_name} not found: Cannot compute the centre array")
 
     if fields:
         if isinstance(fields[0], str):
@@ -88,7 +158,10 @@ def antenna_flags_field(msname, fields=None, antennas=None):
     stats = {}
     for i,aid in enumerate(ant_ids):
         ant_stats = {}
+        ant_pos = list(ant_positions[i])
         ant_stats["name"] = ant_names[aid]
+        ant_stats["position"] = ant_pos
+        ant_stats["array_centre_dist"] = _distance(cofa, ant_pos)
         ant_stats["frac"] = fractions[i]
         ant_stats["sum"] = sum_all[i][0]
         ant_stats["counts"] = sum_all[i][1]

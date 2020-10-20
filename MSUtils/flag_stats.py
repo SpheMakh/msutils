@@ -102,17 +102,15 @@ def antenna_flags_field(msname, fields=None, antennas=None):
     try:
         # Get observatory name and centre of array
         obs_name = ds_obs.TELESCOPE_NAME.data.compute()[0]
-        print(obs_name)
         me = casacore.measures.measures()
         obs_cofa = me.observatory(obs_name)
-        print(obs_cofa)
         lon, lat, alt = (obs_cofa['m0']['value'],
                          obs_cofa['m1']['value'],
                          obs_cofa['m2']['value'])
         cofa = wgs84_to_ecef(lon, lat, alt)
-        print(cofa)
     except:
-        raise Exception(f"Observatory {obs_name} not found: Cannot compute the centre array")
+        # Otherwise use the first id antenna
+        cofa = ant_positions[0]
 
     if fields:
         if isinstance(fields[0], str):

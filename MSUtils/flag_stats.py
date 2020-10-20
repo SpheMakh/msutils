@@ -109,7 +109,8 @@ def antenna_flags_field(msname, fields=None, antennas=None):
                          obs_cofa['m2']['value'])
         cofa = wgs84_to_ecef(lon, lat, alt)
     except:
-        raise Exception(f"Observatory {obs_name} not found: Cannot compute the centre array")
+        # Otherwise use the first id antenna
+        cofa = ant_positions[0]
 
     if fields:
         if isinstance(fields[0], str):

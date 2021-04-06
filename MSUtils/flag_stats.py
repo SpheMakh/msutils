@@ -10,7 +10,7 @@ import casacore.measures
 
 
 
-def _get_flags(names, antenna1, antenna2, flags):
+def _get_ant_flags(names, antenna1, antenna2, flags):
     names = names[0]
     # chan and corr are assumed to have a single chunk
     # so we contract twice to access this single ndarray
@@ -21,6 +21,19 @@ def _get_flags(names, antenna1, antenna2, flags):
         flag_sum = flags[numpy.logical_or(antenna1==i, antenna2==i)]
         fracs[i,0] += flag_sum.sum()
         fracs[i,1] += numpy.product(flag_sum.shape)
+    return fracs
+
+
+def _get_scan_flags(names, flags):
+    names = names[0]
+    # chan and corr are assumed to have a single chunk
+    # so we contract twice to access this single ndarray
+    flags = flags[0][0]
+    nscan = len(names)
+    fracs = numpy.zeros([nscan,2], dtype=numpy.float64)
+    for i in range(nscan):
+        fracs[i,0] = flags.sum()
+        fracs[i,1] = numpy.product(flags.shape)
     return fracs
 
 def _chunk(x, keepdims, axis):
@@ -136,7 +149,7 @@ def antenna_flags_field(msname, fields=None, antennas=None):
             chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
     flag_sum_computes = []
     for ds in ds_mss:
-        flag_sums = da.blockwise(_get_flags, ("row",),
+        flag_sums = da.blockwise(_get_ant_flags, ("row",),
                                     ant_ids, ("ant",),
                                     ds.ANTENNA1.data, ("row",),
                                     ds.ANTENNA2.data, ("row",),
@@ -171,14 +184,10 @@ def antenna_flags_field(msname, fields=None, antennas=None):
     return stats
 
 
-def scan_flags_field(msname, fields=None, antennas=None, scans=None):
-    ds_ant = xds_from_table(msname+"::ANTENNA")[0]
+def scan_flags_field(msname, fields=None, scans=None):
     ds_field = xds_from_table(msname+"::FIELD")[0]
     ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
-
-    ant_names = ds_ant.NAME.data.compute()
     field_names = ds_field.NAME.data.compute()
-    ant_positions = ds_ant.POSITION.data.compute()
 
     if fields:
         if isinstance(fields[0], str):
@@ -188,18 +197,9 @@ def scan_flags_field(msname, fields=None, antennas=None, scans=None):
     else:
         field_ids = list(range(len(field_names)))
 
-    if antennas:
-        if isinstance(antennas[0], str):
-            ant_ids = list(map(antennas.index, antennas))
-        else:
-            ant_ids = antennas
-    else:
-        ant_ids = list(range(len(ant_names)))
-
-    nant = len(ant_ids)
     nfield = len(field_ids)
     fields_str = ", ".join(map(str, field_ids))
-    ds_mss = xds_from_ms(msname, group_cols=["FIELD_ID", "DATA_DESC_ID", "SCAN_NUMBER"],
+    ds_mss = xds_from_ms(msname, group_cols=["SCAN_NUMBER"],
             chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
     flag_sum_computes = []
 
@@ -215,10 +215,8 @@ def scan_flags_field(msname, fields=None, antennas=None, scans=None):
     nscans = len(scan_ids)
 
     for ds in ds_mss:
-        flag_sums = da.blockwise(_get_flags, ("row",),
+        flag_sums = da.blockwise(_get_scan_flags, ("row",),
                                     scan_ids, ("scan",),
-                                    ds.ANTENNA1.data, ("row",),
-                                    ds.ANTENNA2.data, ("row",),
                                     ds.FLAG.data, ("row","chan", "corr"),
                                     adjust_chunks={"row": nscans },
                                     dtype=numpy.ndarray)
@@ -231,20 +229,19 @@ def scan_flags_field(msname, fields=None, antennas=None, scans=None):
                                  dtype=numpy.float64)
         flag_sum_computes.append(flags_redux)
 
-    sum_per_field_spw = dask.compute(flag_sum_computes)[0]
-    sum_all = sum(sum_per_field_spw)
-    fractions = sum_all[:,0]/sum_all[:,1]
+    sum_per_scan_spw = dask.compute(flag_sum_computes)[0]
     stats = {}
     for i,sid in enumerate(scan_ids):
         scan_stats = {}
+        sum_all = sum(sum_per_scan_spw[i])
+        fraction = sum_all[0]/sum_all[1]
         scan_stats["scan_name"] = scan_names[sid]
-        scan_stats["frac"] = fractions[i]
-        scan_stats["sum"] = sum_all[i][0]
-        scan_stats["counts"] = sum_all[i][1]
+        scan_stats["frac"] = fraction
+        scan_stats["sum"] = sum_all[0]
+        scan_stats["counts"] = sum_all[1]
         stats[sid] = scan_stats
 
     return stats
-
 
 #with ExitStack() as stack:
 #    from dask.diagnostics import Profiler, visualize

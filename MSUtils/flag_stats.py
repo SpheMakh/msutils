@@ -184,7 +184,7 @@ def antenna_flags_field(msname, fields=None, antennas=None):
     return stats
 
 
-def scan_flags_field(msname, fields=None, scans=None):
+def scan_flags_field(msname, fields=None):
     ds_field = xds_from_table(msname+"::FIELD")[0]
     ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
     field_names = ds_field.NAME.data.compute()
@@ -197,21 +197,13 @@ def scan_flags_field(msname, fields=None, scans=None):
     else:
         field_ids = list(range(len(field_names)))
 
-    nfield = len(field_ids)
     fields_str = ", ".join(map(str, field_ids))
     ds_mss = xds_from_ms(msname, group_cols=["SCAN_NUMBER"],
             chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
     flag_sum_computes = []
 
-    if scans:
-        if isinstance(scans[0], str):
-            scan_ids = list(map(scans.index, scans))
-        else:
-            scan_ids = scans
-        scan_names = scans
-    else:
-        scan_ids = list(range(len(ds_mss)))
-        scan_names = [str(ds.SCAN_NUMBER) for ds in ds_mss]
+    scan_ids = list(range(len(ds_mss)))
+    scan_names = [str(ds.SCAN_NUMBER) for ds in ds_mss]
     nscans = len(scan_ids)
 
     for ds in ds_mss:

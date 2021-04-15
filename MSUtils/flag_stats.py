@@ -132,7 +132,7 @@ def antenna_flags_field(msname, fields=None, antennas=None):
     field_names = ds_field.NAME.data.compute()
     ant_positions = ds_ant.POSITION.data.compute()
     LOGGER.info("Computing antenna flag stats data...")
-    LOGGER.info(f"Field Names: {field_names}")
+    LOGGER.info(f"Antenna Names: {ant_names}")
 
     try:
         # Get observatory name and array centre
@@ -211,7 +211,6 @@ def scan_flags_field(msname, fields=None):
     ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
     field_names = ds_field.NAME.data.compute()
     LOGGER.info("Computing scan flag stats data...")
-    LOGGER.info(f"Field Names: {field_names}")
 
     if fields:
         if isinstance(fields[0], str):
@@ -229,6 +228,7 @@ def scan_flags_field(msname, fields=None):
     scan_ids = list(range(len(ds_mss)))
     scan_names = [str(ds.SCAN_NUMBER) for ds in ds_mss]
     nscans = len(scan_ids)
+    LOGGER.info(f"Scan Names: {scan_names}")
 
     for ds in ds_mss:
         flag_sums = da.blockwise(_get_flags, ("row",),
@@ -319,7 +319,7 @@ def correlation_flags_field(msname, fields=None):
     corr_ids = list(range(len(corr_names)))
     ncorrs = len(corr_ids)
     LOGGER.info("Computing correlation flag stats data...")
-    LOGGER.info(f"Field Names: {field_names}")
+    LOGGER.info(f"Correlation Names: {corr_names}")
 
     if fields:
         if isinstance(fields[0], str):
@@ -420,6 +420,7 @@ def plot_statistics(msname, field=None, htmlfile=None, jsonfile=None):
     """Plot stats data"""
     flag_data = save_statistics(msname, field=field, outfile=jsonfile)
     _plot_flag_stats(**flag_data)
+
 
 def save_statistics(msname, field=None, outfile=None):
     """Save flag statistics to a json file"""

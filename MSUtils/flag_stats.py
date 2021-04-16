@@ -416,17 +416,17 @@ def _plot_flag_stats(antenna_stats, scan_stats, target_stats, corr_stats, outfil
                 row(plot_list[1], plot_list[0])))
 
 
-def plot_statistics(msname, field=None, htmlfile=None, jsonfile=None):
+def plot_statistics(msname, antenna=None, field=None, htmlfile=None, outfile=None):
     """Plot stats data"""
-    flag_data = save_statistics(msname, field=field, outfile=jsonfile)
+    flag_data = save_statistics(msname, antenna=antenna, field=field, outfile=outfile)
     _plot_flag_stats(**flag_data)
 
 
-def save_statistics(msname, field=None, outfile=None):
+def save_statistics(msname, antenna=None, field=None, outfile=None):
     """Save flag statistics to a json file"""
     target_stats = {'field': source_flags_field(msname, field)}
     scan_stats = {'scan': scan_flags_field(msname, field)}
-    antenna_stats = {'antenna': antenna_flags_field(msname, field)}
+    antenna_stats = {'antenna': antenna_flags_field(msname, field, antenna)}
     corr_stats = {'corr': correlation_flags_field(msname, field)}
     flag_data = {'Flag stats': [scan_stats, antenna_stats, target_stats, corr_stats]}
     if not outfile:

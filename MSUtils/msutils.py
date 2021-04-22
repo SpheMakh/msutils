@@ -12,6 +12,7 @@ import subprocess
 import math
 import json
 import codecs
+import os
 
 dm = pyrap.measures.measures()
 
@@ -325,7 +326,7 @@ def verify_antpos (msname, fix=False, hemisphere=None):
 
     if nw: 
         if not fix:
-            abort("%s/ANTENNA has $nw incorrect Y antenna positions. Check your coordinate conversions (from UVFITS?), or run verify_antpos[fix=True]"%msname)
+            os.abort("%s/ANTENNA has $nw incorrect Y antenna positions. Check your coordinate conversions (from UVFITS?), or run verify_antpos[fix=True]"%msname)
         pos[wrong,1] *= -1; 
         anttab.putcol("POSITION", pos)
         print(("WARNING:%s/ANTENNA: %s incorrect antenna positions were adjusted (Y sign flipped)"%(msname, nw)))
@@ -348,19 +349,19 @@ def prep(msname, verify=False):
     if spawn.find_executable("addbitflagcol"):
         print(("Adding bitflag column to %s"%msname))
         subprocess.check_call(['addbitflagcol', msname],
-                         stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr, 
-                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)
+                         stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr,  # noqa: F821 
+                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)  # noqa: F821
     
     if spawn.find_executable("flag-ms.py"):
         print("Copying FLAG to bitflag 'legacy'")
         subprocess.check_call(['flag-ms.py', '-Y', '+L', '-f', 'legacy', '-c', msname],
-                         stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr, 
-                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)
+                         stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr,  # noqa: F821
+                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)  # noqa: F821
 
         print("Flagging INFs/NaNs in data")
         subprocess.Popen(['flag-ms.py', '--nan', '-f', 'legacy', '--data-column', 'DATA', '-x', msname],
-                         stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr, 
-                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)
+                         stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr,  # noqa: F821
+                         stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout)  # noqa: F821
 
 
 def addnoise(msname, column='MODEL_DATA',

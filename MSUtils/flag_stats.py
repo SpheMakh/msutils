@@ -370,19 +370,19 @@ def _plot_flag_stats(antenna_stats, scan_stats, target_stats, corr_stats, outfil
     """Plot antenna, corr, scan or target summary flag stats"""
     LOGGER.info("Plotting flag stats data.")
     plots={
-           'field': {'title':'Field RFI summary',
+           'fields': {'title':'Field RFI summary',
                       'x_label': 'Field',
                       'y_label': 'Flagged data (%)',
                       'rotate_xlabel':False},
-           'antenna': {'title':'Antenna RFI summary',
+           'antennas': {'title':'Antenna RFI summary',
                         'x_label': 'Antenna',
                         'y_label': 'Flagged data (%)',
                         'rotate_xlabel':True},
-           'scan': {'title':'Scans RFI summary',
+           'scans': {'title':'Scans RFI summary',
                      'x_label': 'Scans',
                      'y_label': 'Flagged data (%)',
                      'rotate_xlabel':True},
-           'corr': {'title':'Correlation RFI summary',
+           'corrs': {'title':'Correlation RFI summary',
                             'x_label': 'Correlation',
                             'y_label': 'Flagged data (%)',
                             'rotate_xlabel':False}

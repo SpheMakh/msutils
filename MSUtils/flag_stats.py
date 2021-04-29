@@ -166,9 +166,9 @@ def antenna_flags_field(msname, fields=None, antennas=None):
 
     nant = len(ant_ids)
     nfield = len(field_ids)
-    
+
     fields_str = ", ".join(map(str, field_ids))
-    ds_mss = xds_from_ms(msname, group_cols=["FIELD_ID", "DATA_DESC_ID"], 
+    ds_mss = xds_from_ms(msname, group_cols=["FIELD_ID", "DATA_DESC_ID"],
             chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
     flag_sum_computes = []
     for ds in ds_mss:
@@ -179,7 +179,7 @@ def antenna_flags_field(msname, fields=None, antennas=None):
                                     ds.FLAG.data, ("row","chan", "corr"),
                                     adjust_chunks={"row": nant },
                                     dtype=numpy.ndarray)
-    
+
         flags_redux = da.reduction(flag_sums,
                                  chunk=_chunk,
                                  combine=_combine,
@@ -408,26 +408,26 @@ def _plot_flag_stats(antenna_stats, scan_stats, target_stats, corr_stats, outfil
         plotter.title.align = 'center'
         plotter.hover.tooltips = [(key.title(), "@x"), ("%", "@top")]
         if rotate_xlabel:
-            plotter.xaxis.major_label_orientation = math.pi/2 
-        plot_list.append(plotter) 
+            plotter.xaxis.major_label_orientation = math.pi/2
+        plot_list.append(plotter)
     output_file(outfile)
     LOGGER.info(f"Output plots: {outfile}.")
     save(column(row(plot_list[2], plot_list[3]),
                 row(plot_list[1], plot_list[0])))
 
 
-def plot_statistics(msname, antenna=None, field=None, htmlfile=None, outfile=None):
+def plot_statistics(msname, antennas=None, fields=None, htmlfile=None, outfile=None):
     """Plot stats data"""
-    flag_data = save_statistics(msname, antenna=antenna, field=field, outfile=outfile)
-    _plot_flag_stats(**flag_data)
+    flag_data = save_statistics(msname, antennas=antennas, fields=fields, outfile=outfile)
+    _plot_flag_stats(**flag_data, outfile=htmlfile)
 
 
-def save_statistics(msname, antenna=None, field=None, outfile=None):
+def save_statistics(msname, antennas=None, fields=None, outfile=None):
     """Save flag statistics to a json file"""
-    target_stats = {'field': source_flags_field(msname, field)}
-    scan_stats = {'scan': scan_flags_field(msname, field)}
-    antenna_stats = {'antenna': antenna_flags_field(msname, field, antenna)}
-    corr_stats = {'corr': correlation_flags_field(msname, field)}
+    target_stats = {'fields': source_flags_field(msname, fields)}
+    scan_stats = {'scans': scan_flags_field(msname, fields)}
+    antenna_stats = {'antennas': antenna_flags_field(msname, fields, antennas)}
+    corr_stats = {'corrs': correlation_flags_field(msname, fields)}
     flag_data = {'Flag stats': [scan_stats, antenna_stats, target_stats, corr_stats]}
     if not outfile:
         outfile = 'default-flag-statistics.json'
@@ -446,5 +446,5 @@ def save_statistics(msname, antenna=None, field=None, outfile=None):
 #    print(sum(result))
 #
 #    import pdb; pdb.set_trace()
-#    
+#
 #    visualize(prof)

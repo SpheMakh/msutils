@@ -32,10 +32,8 @@ LOGGER = create_logger()
 
 
 def _get_ant_flags(names, antenna1, antenna2, flags):
-    names = names[0]
     # chan and corr are assumed to have a single chunk
     # so we contract twice to access this single ndarray
-    flags = flags[0][0]
     nant = len(names)
     fracs = numpy.zeros([nant,2], dtype=numpy.float64)
     for i in range(nant):
@@ -45,10 +43,8 @@ def _get_ant_flags(names, antenna1, antenna2, flags):
     return fracs
 
 def _get_flags(names, flags):
-    names = names[0]
     # chan and corr are assumed to have a single chunk
     # so we contract twice to access this single ndarray
-    flags = flags[0][0]
     num = len(names) # num can be scan, corr, field names
     fracs = numpy.zeros([num,2], dtype=numpy.float64)
     for i in range(num):
@@ -170,23 +166,25 @@ def antenna_flags_field(msname, fields=None, antennas=None):
 
     fields_str = ", ".join(map(str, field_ids))
     ds_mss = xds_from_ms(msname, group_cols=["FIELD_ID", "DATA_DESC_ID"],
-            chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
+                         chunks={'row': 100000},
+                         taql_where="FIELD_ID IN [%s]" % fields_str)
     flag_sum_computes = []
     for ds in ds_mss:
         flag_sums = da.blockwise(_get_ant_flags, ("row",),
-                                    ant_ids, ("ant",),
-                                    ds.ANTENNA1.data, ("row",),
-                                    ds.ANTENNA2.data, ("row",),
-                                    ds.FLAG.data, ("row","chan", "corr"),
-                                    adjust_chunks={"row": nant },
-                                    dtype=numpy.ndarray)
+                                 ant_ids, ("ant",),
+                                 ds.ANTENNA1.data, ("row",),
+                                 ds.ANTENNA2.data, ("row",),
+                                 ds.FLAG.data, ("row","chan", "corr"),
+                                 adjust_chunks={"row": nant },
+                                 concatenate=True,
+                                 dtype=numpy.ndarray)
 
         flags_redux = da.reduction(flag_sums,
-                                 chunk=_chunk,
-                                 combine=_combine,
-                                 aggregate=_aggregate,
-                                 concatenate=False,
-                                 dtype=numpy.float64)
+                                   chunk=_chunk,
+                                   combine=_combine,
+                                   aggregate=_aggregate,
+                                   concatenate=False,
+                                   dtype=numpy.float64)
         flag_sum_computes.append(flags_redux)
 
     #flag_sum_computes[0].visualize("graph.pdf")
@@ -206,6 +204,7 @@ def antenna_flags_field(msname, fields=None, antennas=None):
         stats[aid] = ant_stats
 
     return stats
+
 
 def scan_flags_field(msname, fields=None):
     ds_field = xds_from_table(msname+"::FIELD")[0]
@@ -233,17 +232,18 @@ def scan_flags_field(msname, fields=None):
 
     for ds in ds_mss:
         flag_sums = da.blockwise(_get_flags, ("row",),
-                                    scan_ids, ("scan",),
-                                    ds.FLAG.data, ("row","chan", "corr"),
-                                    adjust_chunks={"row": nscans },
-                                    dtype=numpy.ndarray)
+                                 scan_ids, ("scan",),
+                                 ds.FLAG.data, ("row","chan", "corr"),
+                                 adjust_chunks={"row": nscans },
+                                 concatenate=True,
+                                 dtype=numpy.ndarray)
 
         flags_redux = da.reduction(flag_sums,
-                                 chunk=_chunk,
-                                 combine=_combine,
-                                 aggregate=_aggregate,
-                                 concatenate=False,
-                                 dtype=numpy.float64)
+                                   chunk=_chunk,
+                                   combine=_combine,
+                                   aggregate=_aggregate,
+                                   concatenate=False,
+                                   dtype=numpy.float64)
         flag_sum_computes.append(flags_redux)
 
     sum_per_scan_spw = dask.compute(flag_sum_computes)[0]
@@ -259,6 +259,66 @@ def scan_flags_field(msname, fields=None):
         stats[sid] = scan_stats
 
     return stats
+
+
+def frequency_flags_field(msname, fields=None):
+    ds_field = xds_from_table(msname+"::FIELD")[0]
+    ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
+    ds_spw = xds_from_table(msname+"::SPECTRAL_WINDOW")[0]
+    field_names = ds_field.NAME.data.compute()
+    chan_freqs = ds_spw.CHAN_FREQ.data.compute()
+    chan_ids = list(range(len(chan_freqs[0])))
+    nchans = len(chan_ids)
+    LOGGER.info("Computing freq flag stats data...")
+
+    if fields:
+        if isinstance(fields[0], str):
+            field_ids = list(map(fields.index, fields))
+        else:
+            field_ids = fields
+    else:
+        field_ids = list(range(len(field_names)))
+
+    fields_str = ", ".join(map(str, field_ids))
+    ds_mss = xds_from_ms(msname, chunks={'row': 100000},
+                         taql_where="FIELD_ID IN [%s]" % fields_str)
+    flag_sum_computes = []
+
+    LOGGER.info(f"Number of channels: {nchans}")
+    LOGGER.info(f"Channel frequencies: {chan_freqs}")
+
+    for ds in ds_mss:
+        flag_sums = da.blockwise(_get_flags, ("row",),
+                                 chan_ids, ("chan",),
+                                 ds.FLAG.data, ("row", "chan", "corr"),
+                                 adjust_chunks={"row": nchans },
+                                 concatenate=True,
+                                 dtype=numpy.ndarray)
+
+        flags_redux = da.reduction(flag_sums,
+                                   chunk=_chunk,
+                                   combine=_combine,
+                                   aggregate=_aggregate,
+                                   concatenate=False,
+                                   dtype=numpy.float64)
+        flag_sum_computes.append(flags_redux)
+
+    sum_per_freq_spw = dask.compute(flag_sum_computes)[0]
+    source_freq_stats = {}
+    for src, sum_per_freq_spw_src in enumerate(sum_per_freq_spw):
+        stats = {}
+        for i,cid in enumerate(chan_ids):
+            chan_stats = {}
+            sum_all = sum(sum_per_freq_spw_src[i])
+            fraction = sum_all[0]/sum_all[1]
+            chan_stats["name"] = chan_freqs[0][cid]
+            chan_stats["frac"] = fraction
+            chan_stats["sum"] = sum_all[0]
+            chan_stats["counts"] = sum_all[1]
+            stats[cid] = chan_stats
+        source_freq_stats[src] = stats
+    return source_freq_stats
+
 
 def source_flags_field(msname, fields=None):
     ds_field = xds_from_table(msname+"::FIELD")[0]
@@ -277,23 +337,25 @@ def source_flags_field(msname, fields=None):
 
     fields_str = ", ".join(map(str, field_ids))
     ds_mss = xds_from_ms(msname, group_cols=["FIELD_ID"],
-            chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
+                         chunks={'row': 100000},
+                         taql_where="FIELD_ID IN [%s]" % fields_str)
     flag_sum_computes = []
     nfields = len(field_ids)
 
     for ds in ds_mss:
         flag_sums = da.blockwise(_get_flags, ("row",),
-                                    field_ids, ("field",),
-                                    ds.FLAG.data, ("row","chan", "corr"),
-                                    adjust_chunks={"row": nfields},
-                                    dtype=numpy.ndarray)
+                                 field_ids, ("field",),
+                                 ds.FLAG.data, ("row","chan", "corr"),
+                                 adjust_chunks={"row": nfields},
+                                 concatenate=True,
+                                 dtype=numpy.ndarray)
 
         flags_redux = da.reduction(flag_sums,
-                                 chunk=_chunk,
-                                 combine=_combine,
-                                 aggregate=_aggregate,
-                                 concatenate=False,
-                                 dtype=numpy.float64)
+                                   chunk=_chunk,
+                                   combine=_combine,
+                                   aggregate=_aggregate,
+                                   concatenate=False,
+                                   dtype=numpy.float64)
         flag_sum_computes.append(flags_redux)
 
     sum_per_field_spw = dask.compute(flag_sum_computes)[0]
@@ -339,17 +401,18 @@ def correlation_flags_field(msname, fields=None):
 
     for ds in ds_mss:
         flag_sums = da.blockwise(_get_flags, ("row",),
-                                    corr_ids, ("corr",),
-                                    ds.FLAG.data, ("row", "chan", "corr"),
-                                    adjust_chunks={"corr": ncorrs},
-                                    dtype=numpy.ndarray)
+                                 corr_ids, ("corr",),
+                                 ds.FLAG.data, ("row", "chan", "corr"),
+                                 adjust_chunks={"corr": ncorrs},
+                                 concatenate=True,
+                                 dtype=numpy.ndarray)
 
         flags_redux = da.reduction(flag_sums,
-                                 chunk=_chunk,
-                                 combine=_combine,
-                                 aggregate=_aggregate,
-                                 concatenate=False,
-                                 dtype=numpy.float64)
+                                   chunk=_chunk,
+                                   combine=_combine,
+                                   aggregate=_aggregate,
+                                   concatenate=False,
+                                   dtype=numpy.float64)
         flag_sum_computes.append(flags_redux)
 
     sum_per_corr_spw = dask.compute(flag_sum_computes)[0]
@@ -365,6 +428,7 @@ def correlation_flags_field(msname, fields=None):
         stats[cid] = corr_stats
 
     return stats
+
 
 def _plot_flag_stats(antenna_stats, scan_stats, target_stats, corr_stats, outfile=None):
     """Plot antenna, corr, scan or target summary flag stats"""
@@ -428,24 +492,18 @@ def save_statistics(msname, antennas=None, fields=None, outfile=None):
     target_stats = {'fields': source_flags_field(msname, fields)}
     scan_stats = {'scans': scan_flags_field(msname, fields)}
     antenna_stats = {'antennas': antenna_flags_field(msname, fields, antennas)}
-    corr_stats = {'corrs': correlation_flags_field(msname, fields)}
-    flag_data = {'Flag stats': [scan_stats, antenna_stats, target_stats, corr_stats]}
+    correlation_stats = {'corrs': correlation_flags_field(msname, fields)}
+    frequency_stats = {'chans': frequency_flags_field(msname, fields)}
+    flag_data = {'flag_stats': [scan_stats, antenna_stats, target_stats,
+                                correlation_stats, frequency_stats]}
     if not outfile:
         outfile = 'default-flag-statistics.json'
     LOGGER.info(f'Output json file: {outfile}.')
     with open(outfile, 'w') as f:
         json.dump(flag_data, f)
-    flag_data = {'antenna_stats': antenna_stats, 'scan_stats': scan_stats,
-                 'target_stats': target_stats, 'corr_stats': corr_stats}
+    flag_data = {'antenna_stats': antenna_stats,
+                 'scan_stats': scan_stats,
+                 'target_stats': target_stats,
+                 'corr_stats': correlation_stats,
+                 'chan_stats': frequency_stats}
     return flag_data
-#with ExitStack() as stack:
-#    from dask.diagnostics import Profiler, visualize
-#    prof = Profiler()
-#
-#    stack.enter_context(prof)
-#    result = dask.compute(writes)[0]
-#    print(sum(result))
-#
-#    import pdb; pdb.set_trace()
-#
-#    visualize(prof)

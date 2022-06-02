@@ -172,8 +172,9 @@ def antenna_flags_field(msname, fields=None, antennas=None):
 
     flag_sum_computes = []
     for ant_id in ant_ids:
-        ds = xds_from_ms(msname, group_cols=["FIELD_ID", "DATA_DESC_ID"],
-                chunks={'row': 100000}, taql_where="ANTENNA2 IN [%s]" % str(ant_id))
+        ds = xds_from_ms(msname,
+                chunks={'row': 100000},
+                taql_where=f"ANTENNA1 IN [{ant_id}] or ANTENNA2 IN [{ant_id}]")
         if ds:
             ds = ds[0]
             flag_sums = da.blockwise(_get_ant_flags, ("row",),
@@ -286,7 +287,7 @@ def source_flags_field(msname, fields=None):
     missing_fields = []
 
     for field_id in field_ids:
-        ds = xds_from_ms(msname, group_cols=["FIELD_ID"],
+        ds = xds_from_ms(msname,
                 chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % str(field_id))
         if ds:
             ds = ds[0]

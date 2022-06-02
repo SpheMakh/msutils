@@ -195,22 +195,19 @@ def antenna_flags_field(msname, fields=None, antennas=None):
            LOGGER.warn(f"No data found for Antenna-Id: {ant_id}")
 
 
-    #flag_sum_computes[0].visualize("graph.pdf")
-    sum_per_field_spw = dask.compute(flag_sum_computes)[0]
-    sum_all = sum_per_field_spw[]w
-    fractions = sum_all[:,0]/sum_all[:,1]
     stats = {}
+    sum_per_antenna = dask.compute(flag_sum_computes)[0]
     ant_ids = [ant_id for ant_id in ant_ids if ant_id not in missing_antennas]
-    import IPython; IPython.embed()
     for i,aid in enumerate(ant_ids):
         ant_stats = {}
         ant_pos = list(ant_positions[i])
+        fraction = sum_per_antenna[i][0][0]/sum_per_antenna[i][0][1]
         ant_stats["name"] = ant_names[aid]
         ant_stats["position"] = ant_pos
         ant_stats["array_centre_dist"] = _distance(cofa, ant_pos)
-        ant_stats["frac"] = fractions[i]
-        ant_stats["sum"] = sum_all[i][0]
-        ant_stats["counts"] = sum_all[i][1]
+        ant_stats["frac"] = fraction
+        ant_stats["sum"] = sum_per_antenna[i][0][0]
+        ant_stats["counts"] = sum_per_antenna[i][0][1]
         stats[aid] = ant_stats
 
     return stats
@@ -291,7 +288,7 @@ def source_flags_field(msname, fields=None):
     for field_id in field_ids:
         ds = xds_from_ms(msname, group_cols=["FIELD_ID"],
                 chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % str(field_id))
-        if ds: 
+        if ds:
             ds = ds[0]
             flag_sums = da.blockwise(_get_flags, ("row",),
                                      [field_id], ("field",),
@@ -452,14 +449,3 @@ def save_statistics(msname, antennas=None, fields=None, outfile=None):
     flag_data = {'antenna_stats': antenna_stats, 'scan_stats': scan_stats,
                  'target_stats': target_stats, 'corr_stats': corr_stats}
     return flag_data
-#with ExitStack() as stack:
-#    from dask.diagnostics import Profiler, visualize
-#    prof = Profiler()
-#
-#    stack.enter_context(prof)
-#    result = dask.compute(writes)[0]
-#    print(sum(result))
-#
-#    import pdb; pdb.set_trace()
-#
-#    visualize(prof)

@@ -1,0 +1,26 @@
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
+
+# Sphinx documentation
+docs/_build/
+
+# Unit test / coverage reports
+.pytest_cache/
+
+# Compiled bytecode
+MSUtils/*.pyc
+MSUtils/__pycache__/

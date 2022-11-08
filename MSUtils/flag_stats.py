@@ -465,14 +465,14 @@ def save_statistics(msname, antennas=None, fields=None, outfile=None):
     corr_stats = {'corrs': correlation_flags_field(msname, fields)}
     flag_data = {**target_stats, **scan_stats, **antenna_stats, **corr_stats}
     if not outfile:
-        outfile = 'default-flag-statistics.json'
+        outfile = 'default-flag-stats.json'
     LOGGER.info(f'Output json file: {outfile}.')
     with open(outfile, 'w') as f:
         json.dump(flag_data, f)
     return flag_data
 
 
-def read_statistics(jsonfile="default-flag-statistics.json"):
+def read_statistics(jsonfile="default-flag-stats.json"):
     """Read json summary file and plot flag statistics"""
     LOGGER.info(f"Reading: {jsonfile}")
     with open(jsonfile) as summary_file:

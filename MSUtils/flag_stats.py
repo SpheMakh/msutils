@@ -378,8 +378,26 @@ def correlation_flags_field(msname, fields=None):
 
     return stats
 
-def _plot_flag_stats(antenna_stats, scan_stats, target_stats, corr_stats, outfile=None):
-    """Plot antenna, corr, scan or target summary flag stats"""
+
+def flag_bars(flag_stats, key):
+    """Print out flag stats on terminal
+    https://github.com/IanHeywood/ms_info/blob/master/ms_flags.py
+    """
+    print('')
+    print('Flagged percentages per {key}:')
+    print('')
+    print('                  0%       20%       40%       60%       80%       100%')
+    print('                  |         |         |         |         |         |')
+    for fs in flag_stats.values():
+        ant = fs["name"]
+        average_pc = fs["frac"]*100
+        length = int(average_pc / 2.0)
+        print(' %-9s %-7s %s'% (ant,str(round(average_pc,1))+'%','∎' * length))
+    print('')
+
+
+def _plot_flag_stats(flag_stats, outfile=None):
+    """Plots antenna, corr, scan or target summary flag stats"""
     LOGGER.info("Plotting flag stats data.")
     plots={
            'fields': {'title':'Field RFI summary',
@@ -400,14 +418,18 @@ def _plot_flag_stats(antenna_stats, scan_stats, target_stats, corr_stats, outfil
                             'rotate_xlabel':False}
           }
 
-    plot_list = []
+    # Print flag stats on the terminal
+    for p in plots.keys():
+        flag_bars(flag_stats[p], key=p)
+
+    # Set default output file name if not provided
     if not outfile:
         outfile = 'default-flagging-summary-plots.html'
-    for flag_stats in [antenna_stats, scan_stats, target_stats, corr_stats]:
-        key = list(flag_stats.keys())[0]
-        flag_data = list(flag_stats.values())[0]
-        stats_keys = [fd['name'] for fd in flag_data.values()]
-        flag_percentages = [fd['frac']*100 for fd in flag_data.values()]
+
+    plot_list = []
+    for key, fs in flag_stats.items():
+        stats_keys = [f['name'] for f in fs.values()]
+        flag_percentages = [f['frac']*100 for f in fs.values()]
         rotate_xlabel = plots[key]['rotate_xlabel']
         x_label=plots[key]['x_label']
         y_label=plots[key]['y_label']
@@ -429,10 +451,10 @@ def _plot_flag_stats(antenna_stats, scan_stats, target_stats, corr_stats, outfil
                 row(plot_list[1], plot_list[0])))
 
 
-def plot_statistics(msname, antennas=None, fields=None, htmlfile=None, outfile=None):
+def plot_statistics(msname, antennas=None, fields=None, htmlfile=None, jsonfile=None):
     """Plot stats data"""
-    flag_data = save_statistics(msname, antennas=antennas, fields=fields, outfile=outfile)
-    _plot_flag_stats(**flag_data, outfile=htmlfile)
+    flag_data = save_statistics(msname, antennas=antennas, fields=fields, outfile=jsonfile)
+    _plot_flag_stats(flag_data, outfile=htmlfile)
 
 
 def save_statistics(msname, antennas=None, fields=None, outfile=None):
@@ -441,12 +463,18 @@ def save_statistics(msname, antennas=None, fields=None, outfile=None):
     scan_stats = {'scans': scan_flags_field(msname, fields)}
     antenna_stats = {'antennas': antenna_flags_field(msname, fields, antennas)}
     corr_stats = {'corrs': correlation_flags_field(msname, fields)}
-    flag_data = {'Flag stats': [scan_stats, antenna_stats, target_stats, corr_stats]}
+    flag_data = {**target_stats, **scan_stats, **antenna_stats, **corr_stats}
     if not outfile:
         outfile = 'default-flag-statistics.json'
     LOGGER.info(f'Output json file: {outfile}.')
     with open(outfile, 'w') as f:
         json.dump(flag_data, f)
-    flag_data = {'antenna_stats': antenna_stats, 'scan_stats': scan_stats,
-                 'target_stats': target_stats, 'corr_stats': corr_stats}
     return flag_data
+
+
+def read_statistics(jsonfile="default-flag-statistics.json"):
+    """Read json summary file and plot flag statistics"""
+    LOGGER.info(f"Reading: {jsonfile}")
+    with open(jsonfile) as summary_file:
+        flag_data = json.loads(summary_file.read())
+    _plot_flag_stats(flag_data, outfile=None)

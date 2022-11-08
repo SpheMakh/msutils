@@ -1,0 +1,94 @@
+diff --git a/MSUtils/flag_stats.py b/MSUtils/flag_stats.py
+index 8482c0e..d91ff1c 100644
+--- a/MSUtils/flag_stats.py
++++ b/MSUtils/flag_stats.py
+@@ -29,13 +29,28 @@ def _get_scan_flags(names, flags):
+     # chan and corr are assumed to have a single chunk
+     # so we contract twice to access this single ndarray
+     flags = flags[0][0]
+-    nscan = len(names)
+-    fracs = numpy.zeros([nscan,2], dtype=numpy.float64)
+-    for i in range(nscan):
++    print(flags)
++    nchan = len(names)
++    fracs = numpy.zeros([nchan,2], dtype=numpy.float64)
++    for i in range(nchan):
+         fracs[i,0] = flags.sum()
+         fracs[i,1] = numpy.product(flags.shape)
+     return fracs
+ 
++def _get_chan_flags(names, flags):
++    names = names[0]
++    # chan and corr are assumed to have a single chunk
++    # so we contract twice to access this single ndarray
++    flags = flags[0][0]
++    nchan = len(names)
++    fracs = numpy.zeros([nchan,2], dtype=numpy.float64)
++    for i in range(nchan):
++        flag_sum = flags
++        fracs[i,0] += flag_sum.sum()
++        fracs[i,1] += numpy.product(flag_sum.shape)
++    return fracs
++
++
+ def _chunk(x, keepdims, axis):
+     return x
+ 
+@@ -235,6 +250,57 @@ def scan_flags_field(msname, fields=None):
+ 
+     return stats
+ 
++def chan_flags_field(msname, fields=None):
++    ds_spw = xds_from_table(msname+"::SPECTRAL_WINDOW")[0]
++    ds_field = xds_from_table(msname+"::FIELD")[0]
++    ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
++    field_names = ds_field.NAME.data.compute()
++    freq_chans = ds_spw.CHAN_FREQ.data.compute()[0]
++    nchans = len(freq_chans)
++    chan_ids = list(range(nchans))
++
++    if fields:
++        if isinstance(fields[0], str):
++            field_ids = list(map(fields.index, fields))
++        else:
++            field_ids = fields
++    else:
++        field_ids = list(range(len(field_names)))
++
++    fields_str = ", ".join(map(str, field_ids))
++    ds_mss = xds_from_ms(msname, group_cols=['FIELD_ID', 'DATA_DESC_ID', 'TIME'],
++            chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
++    flag_sum_computes = []
++    import IPython; IPython.embed()
++    for ds in ds_mss:
++        flag_sums = da.blockwise(_get_chan_flags, ("row",),
++                                    chan_ids, ("chan",),
++                                    ds.FLAG.data, ("row", "corr"),
++                                    adjust_chunks={"row": nchans },
++                                    dtype=numpy.ndarray)
++
++        flags_redux = da.reduction(flag_sums,
++                                 chunk=_chunk,
++                                 combine=_combine,
++                                 aggregate=_aggregate,
++                                 concatenate=False,
++                                 dtype=numpy.float64)
++        flag_sum_computes.append(flags_redux)
++
++    sum_per_chan_spw = dask.compute(flag_sum_computes)[0]
++    stats = {}
++
++    for i,cid in enumerate(chan_ids):
++        scan_stats = {}
++        sum_all = sum(sum_per_scan_spw[i])
++        fraction = sum_all[0]/sum_all[1]
++        scan_stats["freq"] = freq_chans[cid]
++        scan_stats["frac"] = fraction
++        scan_stats["sum"] = sum_all[0]
++        scan_stats["counts"] = sum_all[1]
++        stats[sid] = scan_stats
++
++    return stats
+ #with ExitStack() as stack:
+ #    from dask.diagnostics import Profiler, visualize
+ #    prof = Profiler()

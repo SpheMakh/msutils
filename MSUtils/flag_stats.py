@@ -384,7 +384,7 @@ def flag_bars(flag_stats, key):
     https://github.com/IanHeywood/ms_info/blob/master/ms_flags.py
     """
     print('')
-    print('Flagged percentages per {key}:')
+    print(f'Flagged percentages per {key}:')
     print('')
     print('                  0%       20%       40%       60%       80%       100%')
     print('                  |         |         |         |         |         |')

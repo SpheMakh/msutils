@@ -378,6 +378,67 @@ def correlation_flags_field(msname, fields=None):
 
     return stats
 
+def channel_flags_field(msname, field, chan_chunk=64):
+    ds_field = xds_from_table(msname+"::FIELD")[0]
+    ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
+    ds_spw = xds_from_table(msname+"::SPECTRAL_WINDOW")[0]
+    field_names = ds_field.NAME.data.compute()
+    freq_chans = ds_spw.CHAN_FREQ.data.compute()[0]
+    nchans = len(freq_chans)
+    chan_ids = list(range(nchans))
+    LOGGER.info("Computing channel flag stats data...")
+
+
+    if field:
+        if isinstance(field, str):
+            field_id = list(map(list(field_names).index, field))
+        else:
+            field_id = field
+    else:
+        field_id = 0
+
+    LOGGER.info(f"Field Name: {field_names[field_id]}")
+    #fields_str = ", ".join(map(str, field_ids))
+    flag_sum_computes = []
+    #nfields = len(field_ids)
+    missing_fields = []
+
+    ds = xds_from_ms(msname, chunks={'row': 10e15, 'chan': chan_chunk}, taql_where="FIELD_ID IN [%s]" % str(field_id))
+    if ds:
+        ds = ds[0]
+        flag_sums = da.blockwise(_get_flags, ("chan",),
+                                 chan_ids, ("chan",),
+                                 ds.FLAG.data, ("row","chan", "corr"),
+                                 adjust_chunks={"chan": nchans},
+                                 type=numpy.ndarray)
+
+        flags_redux = da.reduction(flag_sums,
+                                   chunk=_chunk,
+                                   combine=_combine,
+                                   aggregate=_aggregate,
+                                   concatenate=False,
+                                   dtype=numpy.float64)
+        flag_sum_computes.append(flags_redux)
+    else:
+        missing_fields.append(field_id)
+        LOGGER.warn(f"No data for field-Id: {field_id}")
+
+    stats = {}
+    sum_per_field_spw = dask.compute(flag_sum_computes)[0]
+    import IPython;  IPython.embed()
+    field_ids = [field_id for field_id in field_ids if field_id not in missing_fields]
+    for i,fid in enumerate(field_ids):
+        field_stats = {}
+        sum_all = sum(sum_per_field_spw[i])
+        fraction = sum_all[0]/sum_all[1]
+        field_stats["name"] = field_names[fid]
+        field_stats["frac"] = fraction
+        field_stats["sum"] = sum_all[0]
+        field_stats["counts"] = sum_all[1]
+        stats[fid] = field_stats
+
+    return stats
+
 
 def flag_bars(flag_stats, key):
     """Print out flag stats on terminal

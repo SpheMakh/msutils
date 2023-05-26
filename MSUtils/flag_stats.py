@@ -266,6 +266,60 @@ def scan_flags_field(msname, fields=None):
 
     return stats
 
+
+def channel_flags_field(msname, fields=None):
+    ds_spw = xds_from_table(msname+"::SPECTRAL_WINDOW")[0]
+    ds_field = xds_from_table(msname+"::FIELD")[0]
+    ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
+    field_names = ds_field.NAME.data.compute()
+    freq_chans = ds_spw.CHAN_FREQ.data.compute()[0]
+    nchans = len(freq_chans)
+    chan_ids = list(range(nchans))
+
+    if fields:
+        if isinstance(fields[0], str):
+            field_ids = list(map(fields.index, fields))
+        else:
+            field_ids = fields
+    else:
+        field_ids = list(range(len(field_names)))
+
+    fields_str = ", ".join(map(str, field_ids))
+    ds_mss = xds_from_ms(msname, group_cols=['FIELD_ID', 'DATA_DESC_ID', 'TIME'],
+            chunks={'row': 100000}, taql_where="FIELD_ID IN [%s]" % fields_str)
+    flag_sum_computes = []
+    LOGGER.info(f"Channel Ids: {chan_ids}")
+
+
+    for ds in ds_mss:
+        flag_sums = da.blockwise(_get_flags, ("row",),
+                                    chan_ids, ("chan",),
+                                    ds.FLAG.data, ("row","chan","corr"),
+                                    adjust_chunks={ "row": nchans },
+                                    dtype=numpy.ndarray)
+
+        flags_redux = da.reduction(flag_sums,
+                                 chunk=_chunk,
+                                 combine=_combine,
+                                 aggregate=_aggregate,
+                                 concatenate=False,
+                                 dtype=numpy.float64)
+        flag_sum_computes.append(flags_redux)
+
+    sum_per_chan_spw = dask.compute(flag_sum_computes)[0]
+    stats = {}
+    for i,cid in enumerate(chan_ids):
+        chan_stats = {}
+        sum_all = sum(sum_per_chan_spw[i])
+        fraction = sum_all[0]/sum_all[1]
+        chan_stats["name"] = chan_ids[cid]
+        chan_stats["frac"] = fraction
+        chan_stats["sum"] = sum_all[0]
+        chan_stats["counts"] = sum_all[1]
+        stats[cid] = chan_stats
+
+    return stats
+
 def source_flags_field(msname, fields=None):
     ds_field = xds_from_table(msname+"::FIELD")[0]
     ds_obs = xds_from_table(msname+"::OBSERVATION")[0]
@@ -412,6 +466,10 @@ def _plot_flag_stats(flag_stats, outfile=None):
                      'x_label': 'Scans',
                      'y_label': 'Flagged data (%)',
                      'rotate_xlabel':True},
+           'chans': {'title':'Channel RFI summary',
+                     'x_label': 'Channel',
+                     'y_label': 'Flagged data (%)',
+                     'rotate_xlabel':True},
            'corrs': {'title':'Correlation RFI summary',
                             'x_label': 'Correlation',
                             'y_label': 'Flagged data (%)',
@@ -434,8 +492,9 @@ def _plot_flag_stats(flag_stats, outfile=None):
         x_label=plots[key]['x_label']
         y_label=plots[key]['y_label']
         title=plots[key]['title']
-        plotter = figure(x_range=stats_keys, x_axis_label=x_label, y_axis_label=y_label,
-                         plot_width=600, plot_height=400, title=title, y_range=(0, 100),
+        plotter = figure(x_range=list(map(str, stats_keys)), y_range=(0, 100),
+                         x_axis_label=x_label, y_axis_label=y_label,
+                         plot_width=600, plot_height=400, title=title,
                          tools="hover,box_zoom,wheel_zoom,pan,save,reset")
         plotter.vbar(x=stats_keys, top=flag_percentages, width=0.9)
         plotter.xgrid.grid_line_color = None
@@ -448,7 +507,8 @@ def _plot_flag_stats(flag_stats, outfile=None):
     output_file(outfile)
     LOGGER.info(f"Output plots: {outfile}.")
     save(column(row(plot_list[2], plot_list[3]),
-                row(plot_list[1], plot_list[0])))
+                row(plot_list[1], plot_list[0]),
+                row(plot_list[4])))
 
 
 def plot_statistics(msname, antennas=None, fields=None, htmlfile=None, jsonfile=None):
@@ -463,7 +523,8 @@ def save_statistics(msname, antennas=None, fields=None, outfile=None):
     scan_stats = {'scans': scan_flags_field(msname, fields)}
     antenna_stats = {'antennas': antenna_flags_field(msname, fields, antennas)}
     corr_stats = {'corrs': correlation_flags_field(msname, fields)}
-    flag_data = {**target_stats, **scan_stats, **antenna_stats, **corr_stats}
+    chan_stats = {'chans': channel_flags_field(msname, fields)}
+    flag_data = {**target_stats, **scan_stats, **antenna_stats, **corr_stats, **chan_stats}
     if not outfile:
         outfile = 'default-flag-stats.json'
     LOGGER.info(f'Output json file: {outfile}.')

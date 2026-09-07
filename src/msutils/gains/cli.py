@@ -10,22 +10,21 @@ from __future__ import annotations
 
 import click
 
+from msutils._log import configure_logging
+from msutils._package import __version__
+
 from .fluxscale import fluxscale as _fluxscale
 from .normalise import normalise as _normalise
 from .smooth import smooth as _smooth
-
-try:
-    from importlib.metadata import version as _version
-
-    __version__ = _version("msutils")
-except Exception:  # not installed / metadata missing
-    __version__ = "unknown"
 
 
 @click.group()
 @click.version_option(__version__, prog_name="gainutils")
 def cli():
     """Operations on calibration gain tables."""
+    # The library half never attaches a handler (see `msutils._log`), so the
+    # console script is what makes msutils audible.
+    configure_logging()
 
 
 @cli.command()

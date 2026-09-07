@@ -43,12 +43,11 @@ them (``tests/test_import.py`` enforces that for the package as a whole).
 
 from __future__ import annotations
 
+import logging
 import shutil
 from pathlib import Path
 
 import numpy as np
-
-from msutils._log import create_logger
 
 from ._model import GainBlock, GainTable
 
@@ -60,7 +59,7 @@ __all__ = [
     "write_quartical",
 ]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def _open_dataset(path: Path):

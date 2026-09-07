@@ -30,12 +30,11 @@ Two mapping details worth knowing:
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
 
 import numpy as np
-
-from msutils._log import create_logger
 
 from ._model import (
     STOKES_TYPES,
@@ -50,7 +49,7 @@ from ._model import (
     SpectralWindow,
 )
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 #: Seconds between the MJD epoch (1858-11-17) and the unix epoch (1970-01-01).
 #: 40587 days.

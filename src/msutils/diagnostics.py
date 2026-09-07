@@ -11,6 +11,7 @@ Three small tools that round out the "what is actually in this MS" story that
 from __future__ import annotations
 
 import glob
+import logging
 import os
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -19,7 +20,6 @@ from typing import Any
 
 import numpy as np
 
-from ._log import create_logger
 from ._tables import open_table
 from ._tables import query as _query
 from .info import msinfo
@@ -27,7 +27,7 @@ from .info._render import format_bytes
 
 __all__ = ["CheckReport", "DiskUsage", "StorageGroup", "check", "du", "taql"]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass

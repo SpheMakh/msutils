@@ -31,16 +31,16 @@ from __future__ import annotations
 
 import codecs
 import json
+import logging
 import warnings
 from typing import Any
 
-from ._log import create_logger
 from ._tables import open_table, query
 from .info import msinfo
 
 __all__ = ["summary"]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 _DEPRECATION = (
     "msutils.summary() is deprecated and will be removed in a future release; "

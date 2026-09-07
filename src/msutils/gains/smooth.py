@@ -71,13 +71,12 @@ corrects.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 import numpy as np
-
-from msutils._log import create_logger
 
 from ._io import read_gains, write_gains
 from ._model import GainBlock, GainTable
@@ -85,7 +84,7 @@ from ._params import classify_parameters, rebuild_gains
 
 __all__ = ["KERNELS", "SmoothResult", "SmoothedBlock", "smooth"]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 #: Bumped on any breaking change to the JSON report.
 SCHEMA_VERSION = 1

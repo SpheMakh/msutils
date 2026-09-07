@@ -12,17 +12,17 @@ required for writing one.
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 from collections.abc import Sequence
 from typing import Any
 
-from ._log import create_logger
 from .info import MSInfo, msinfo
 
 __all__ = ["PARTITION_KEYS", "to_msv4"]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 #: Extra keys ``partition_scheme`` accepts. MSv4 always partitions by spectral
 #: window, polarization setup and observation mode; these subdivide further.

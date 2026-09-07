@@ -17,6 +17,7 @@ only the optional matplotlib plot remains behind the ``plots`` extra.
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from dataclasses import field as _field
@@ -24,7 +25,6 @@ from typing import Any
 
 import numpy as np
 
-from ._log import create_logger
 from ._tables import open_table, query
 from .info import msinfo
 from .info._model import Registry, _Record
@@ -37,7 +37,7 @@ __all__ = [
     "save_statistics",
 ]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 #: Axes that :func:`flagstats` can break the counts down by.
 AXES = ("field", "scan", "antenna", "baseline", "spw", "correlation", "channel")

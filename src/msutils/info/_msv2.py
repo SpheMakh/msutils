@@ -15,13 +15,13 @@ up into scans, fields and MS-wide totals.
 
 from __future__ import annotations
 
+import logging
 import math
 import os
 from typing import Any
 
 import numpy as np
 
-from msutils._log import create_logger
 from msutils._tables import open_table, query, subtable_names
 
 from ._model import (
@@ -37,7 +37,7 @@ from ._model import (
     SpectralWindow,
 )
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 #: Detail levels accepted by :func:`read`, cheapest first. Each names the cost
 #: tier by what it has to read.

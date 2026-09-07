@@ -5,20 +5,18 @@ import json
 import click
 
 from . import _ms
+from ._log import configure_logging
+from ._package import __version__
 from .info import msinfo
-
-try:
-    from importlib.metadata import version as _version
-
-    __version__ = _version("msutils")
-except Exception:  # not installed / metadata missing
-    __version__ = "unknown"
 
 
 @click.group()
 @click.version_option(__version__, prog_name="msutils")
 def cli():
     """Everyday Measurement Set operations."""
+    # The library half never attaches a handler (see `msutils._log`), so the
+    # console script is what makes msutils audible.
+    configure_logging()
 
 
 @cli.command()

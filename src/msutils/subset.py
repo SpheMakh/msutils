@@ -18,6 +18,7 @@ and what remains is renumbered from 0.
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 from collections.abc import Sequence
@@ -25,13 +26,12 @@ from typing import Any
 
 import numpy as np
 
-from ._log import create_logger
 from ._tables import closing_table, open_table, query
 from .info import msinfo
 
 __all__ = ["average", "subset"]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def subset(

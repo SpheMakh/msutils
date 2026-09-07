@@ -7,13 +7,12 @@ does, which is why the import lives inside the function.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
-
-from ._log import create_logger
 
 __all__ = ["plot_flagstats"]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 #: Bars beyond this many are thinned to the worst offenders, so the axis stays
 #: readable on arrays with hundreds of baselines.

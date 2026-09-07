@@ -14,11 +14,11 @@ guaranteed to be readable by msutils.
 from __future__ import annotations
 
 import datetime
+import logging
 import os
 import shutil
 from dataclasses import dataclass
 
-from ._log import create_logger
 from ._tables import open_table, query
 
 __all__ = [
@@ -29,7 +29,7 @@ __all__ = [
     "flag_versions",
 ]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 #: Columns carried in a flag version.
 _FLAG_COLUMNS = ("FLAG", "FLAG_ROW")

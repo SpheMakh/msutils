@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import traceback
 from collections.abc import Sequence
@@ -12,7 +13,6 @@ import numpy as np
 from casacore.tables import makearrcoldesc, makescacoldesc, maketabdesc
 
 from ._compat import summary
-from ._log import create_logger
 from ._tables import open_table
 from .info._model import STOKES_TYPES
 
@@ -29,7 +29,7 @@ __all__ = [
     "verify_antpos",
 ]
 
-LOGGER = create_logger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def _measures():

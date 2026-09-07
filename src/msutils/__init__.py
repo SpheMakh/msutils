@@ -14,9 +14,6 @@ Feature-specific modules require optional extras -- ``msutils[flagstats]``,
 ``msutils[plots]``, ``msutils[average]``, ``msutils[msv4]``.
 """
 
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as _version
-
 from . import gains
 from ._ms import (
     STOKES_TYPES,
@@ -30,16 +27,12 @@ from ._ms import (
     summary,
     verify_antpos,
 )
+from ._package import __version__
 from .diagnostics import check, du, taql
 from .flags import flag_backup, flag_delete, flag_restore, flag_versions
 from .flagstats import flagstats
 from .info import MSInfo, detect_format, msinfo
 from .subset import average, subset
-
-try:
-    __version__ = _version("msutils")
-except PackageNotFoundError:  # running from a source tree, not installed
-    __version__ = "0.0.0.dev0"
 
 __all__ = [
     "STOKES_TYPES",

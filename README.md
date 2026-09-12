@@ -1,5 +1,10 @@
 # msutils
 
+Please acknowledge this project and its contributors when using the work
+in research, and cite the associated publications and software release
+where applicable. This is a scholarly request, not an additional licence
+condition.
+
 Everyday Measurement Set operations for radio-astronomy pipelines — inspect,
 subset, average, manage columns and flags. No calibration, no imaging.
 

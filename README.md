@@ -187,4 +187,4 @@ info = msutils.msinfo("obs.ms")  # use this
 
 ## License
 
-GNU GPL v2 or later. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

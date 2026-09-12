@@ -9,7 +9,7 @@ Please acknowledge this project and its contributors when using the work
 in research, and cite the associated publications and software release
 where applicable. This is a scholarly request, not an additional licence
 condition.
-Citation information can be found in [CITATION.md](CITATION.md).
+Citation information can be found in [CITATION.cff](CITATION.cff).
 
 [![CI](https://github.com/shinobi-dosho/msutils/actions/workflows/ci.yml/badge.svg)](https://github.com/shinobi-dosho/msutils/actions/workflows/ci.yml)
 [![Documentation](https://readthedocs.org/projects/msutils/badge/?version=latest)](https://msutils.readthedocs.io/en/latest/)

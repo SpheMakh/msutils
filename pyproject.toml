@@ -122,7 +122,7 @@ include = [
     "/README.md",
     "/LICENSE",
     "/NOTICE",
-    "/CITATION.md",
+    "/CITATION.cff",
     "/AGENTS.md",
     "/CONTRIBUTING.md",
     "/CODE_OF_CONDUCT.md",

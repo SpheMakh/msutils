@@ -3,6 +3,14 @@
 Everyday Measurement Set operations for radio-astronomy pipelines — inspect,
 subset, average, manage columns and flags. No calibration, no imaging.
 
+## Academic attribution
+
+Please acknowledge this project and its contributors when using the work
+in research, and cite the associated publications and software release
+where applicable. This is a scholarly request, not an additional licence
+condition.
+Citation information can be found in [CITATION.cff](CITATION.cff).
+
 [![CI](https://github.com/shinobi-dosho/msutils/actions/workflows/ci.yml/badge.svg)](https://github.com/shinobi-dosho/msutils/actions/workflows/ci.yml)
 [![Documentation](https://readthedocs.org/projects/msutils/badge/?version=latest)](https://msutils.readthedocs.io/en/latest/)
 [![PyPI](https://img.shields.io/pypi/v/msutils.svg)](https://pypi.org/project/msutils/)
@@ -187,4 +195,4 @@ info = msutils.msinfo("obs.ms")  # use this
 
 ## License
 
-GNU GPL v2 or later. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

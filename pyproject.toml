@@ -7,7 +7,8 @@ name = "msutils"
 version = "3.0.0"
 description = "Everyday Measurement Set operations for radio-astronomy pipelines."
 readme = "README.md"
-license = "GPL-2.0-or-later"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.11"
 authors = [
     { name = "Sphesihle Makhathini", email = "sphemakh@gmail.com" },
@@ -120,6 +121,8 @@ include = [
     "/src/msutils",
     "/README.md",
     "/LICENSE",
+    "/NOTICE",
+    "/CITATION.cff",
     "/AGENTS.md",
     "/CONTRIBUTING.md",
     "/CODE_OF_CONDUCT.md",

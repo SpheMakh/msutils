@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it using these metadata.
+title: msutils
+type: software
+authors:
+- family-names: Makhathini
+  given-names: Sphesihle
+  email: sphemakh@gmail.com
+  orcid: https://orcid.org/0000-0001-9565-9622
+abstract: Everyday Measurement Set operations for radio-astronomy pipelines.
+version: 3.0.0
+keywords:
+- radio astronomy
+- measurement set
+license: Apache-2.0
+repository-code: https://github.com/shinobi-dosho/msutils
+url: https://github.com/shinobi-dosho/msutils
